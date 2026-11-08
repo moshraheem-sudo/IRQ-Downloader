@@ -1,0 +1,31 @@
+name: Build and publish IRQ Downloader release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  windows-installer:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Inno Setup
+        run: choco install innosetup --yes --no-progress
+      - name: Build application and installer
+        shell: pwsh
+        run: .\build_irq_release.ps1
+      - name: Verify release tag matches application version
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path Cargo.toml -Pattern '^version = "([^"]+)"').Matches[0].Groups[1].Value
+          if ($env:GITHUB_REF_NAME -ne "v$version") { throw "Tag $env:GITHUB_REF_NAME does not match Cargo.toml version v$version" }
+      - name: Publish installer on GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: gh release create "$env:GITHUB_REF_NAME" ".\dist\IRQDownloader-Setup.exe" --title "IRQ Downloader $env:GITHUB_REF_NAME" --generate-notes

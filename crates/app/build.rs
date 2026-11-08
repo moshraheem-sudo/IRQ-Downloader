@@ -21,8 +21,8 @@ fn main() {
         res.set_icon("icon.ico");
         res.set("ProductName", "IRQ Downloader");
         res.set("FileDescription", "IRQ Downloader");
-        res.set("CompanyName", "IRQ");
-        res.set("LegalCopyright", "IRQ Downloader based on Ezoo Download by Ahmed Ezzat");
+        res.set("CompanyName", "Eng: Mohammed Shaheed Raheem");
+        res.set("LegalCopyright", "Eng: Mohammed Shaheed Raheem; based on Ezoo Download by Ahmed Ezzat");
         res.set("OriginalFilename", "IRQDownloader.exe");
         res.set("InternalName", "IRQDownloader");
         res.set("ProductVersion", version);
@@ -31,7 +31,7 @@ fn main() {
             r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <assemblyIdentity type="win32" name="IRQ.Downloader" version="1.0.0.0" processorArchitecture="*"/>
-  <description>IRQ Downloader - based on Ezoo Download by Ahmed Ezzat</description>
+  <description>IRQ Downloader by Eng: Mohammed Shaheed Raheem</description>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>

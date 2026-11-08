@@ -22,4 +22,18 @@ try {
     Copy-Item (Join-Path $root 'THIRD-PARTY-NOTICES.txt') (Join-Path $dist 'THIRD-PARTY-NOTICES.txt') -Force
     Copy-Item (Join-Path $root 'README.md') (Join-Path $dist 'README.md') -Force
     Write-Host "Built: $dist\IRQDownloader.exe" -ForegroundColor Green
+
+    $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
+    if (-not $iscc) {
+        $candidate = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+        if (Test-Path $candidate) { $iscc = $candidate }
+    }
+    if ($iscc) {
+        Write-Host 'Building the signed-by-GitHub-digest installer...' -ForegroundColor Cyan
+        & $iscc "/DStage=$dist" "/DMyAppVersion=$((Select-String -Path (Join-Path $root 'Cargo.toml') -Pattern '^version = "([^"]+)"').Matches[0].Groups[1].Value)" (Join-Path $root 'installer\irq_download.iss')
+        if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
+        Write-Host "Installer: $root\dist\IRQDownloader-Setup.exe" -ForegroundColor Green
+    } else {
+        Write-Warning 'Inno Setup 6 was not found; the executable was built but no setup installer was produced.'
+    }
 } finally { Pop-Location }

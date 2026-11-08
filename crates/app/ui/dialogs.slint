@@ -3800,7 +3800,8 @@ export component AboutDialog inherits ThemedWindow {
         HRow { alignment: center; Image { source: @image-url("icon.png"); width: 72px; height: 72px; } }
         Text { text: "IRQ Downloader"; horizontal-alignment: center; font-size: 20px * Theme.font-scale; font-weight: 700; color: Theme.text; }
         Text { text: @tr("Version {}", root.version); horizontal-alignment: center; color: Theme.muted; }
-        Text { text: "IRQ Downloader is based on Ezoo Download by Ahmed Ezzat."; horizontal-alignment: center; color: Theme.text; wrap: word-wrap; }
+        Text { text: "Developed by Eng: Mohammed Shaheed Raheem"; horizontal-alignment: center; color: Theme.text; wrap: word-wrap; }
+        Text { text: "Based on Ezoo Download by Ahmed Ezzat."; horizontal-alignment: center; color: Theme.muted; wrap: word-wrap; }
         Text { text: "See LICENSE and THIRD-PARTY-NOTICES.txt for source and license information."; horizontal-alignment: center; color: Theme.muted; wrap: word-wrap; }
         HRow {
             alignment: center;
@@ -4266,13 +4267,14 @@ export component UpdateDialog inherits ThemedWindow {
     always-on-top: root.front;
     title: @tr("Check for updates");
     preferred-width: 460px;
-    // 0 checking, 1 newest already, 2 downloading, 3 installing, 4 problem
+    // 0 checking, 1 current, 2 update available, 3 downloading/installing, 4 problem
     in property <int> state;
     in property <string> heading;
     in property <string> detail;
     // 0..1 while downloading (-1 = size unknown)
     in property <float> progress: -1;
     callback close-window();
+    callback download-install();
     VerticalLayout {
         padding: 18px;
         spacing: 12px;
@@ -4314,13 +4316,13 @@ export component UpdateDialog inherits ThemedWindow {
                 }
             }
         }
-        if root.state == 0 || root.state == 2 || root.state == 3: Rectangle {
+        if root.state == 0 || root.state == 3: Rectangle {
             height: 10px;
             border-radius: 5px;
             background: Theme.bar-bg;
             clip: true;
             // known size: how far it is; otherwise a moving piece
-            if root.state == 2 && root.progress >= 0: Rectangle {
+            if root.state == 3 && root.progress >= 0: Rectangle {
                 x: Theme.rtl ? parent.width - self.width : 0;
                 width: parent.width * clamp(root.progress, 0, 1);
                 height: parent.height;
@@ -4328,7 +4330,7 @@ export component UpdateDialog inherits ThemedWindow {
                 background: Theme.accent;
                 animate width { duration: 150ms; }
             }
-            if !(root.state == 2 && root.progress >= 0): Rectangle {
+            if !(root.state == 3 && root.progress >= 0): Rectangle {
                 width: parent.width * 0.3;
                 height: parent.height;
                 border-radius: 5px;
@@ -4338,8 +4340,13 @@ export component UpdateDialog inherits ThemedWindow {
         }
         HRow {
             alignment: end;
+            if root.state == 2: Button {
+                text: @tr("Download and install");
+                primary: true;
+                clicked => { root.download-install(); }
+            }
             Button {
-                text: root.state == 2 || root.state == 3 ? @tr("Hide") : @tr("Close");
+                text: root.state == 3 ? @tr("Hide") : @tr("Close");
                 primary: root.state == 1 || root.state == 4;
                 enabled: root.state != 3;
                 clicked => {

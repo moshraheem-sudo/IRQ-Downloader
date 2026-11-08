@@ -8,7 +8,7 @@
   #define Stage "..\build-cache\stage"
 #endif
 #ifndef MyAppVersion
-  #define MyAppVersion "1.1.0"
+#define MyAppVersion "1.1.1"
 #endif
 
 [Setup]
@@ -16,7 +16,7 @@ AppId={{F5837666-2925-4FD9-8CE9-728BE9C5D7E4}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
-AppPublisher=IRQ Downloader
+AppPublisher=Eng: Mohammed Shaheed Raheem
 DefaultDirName={localappdata}\Programs\IRQ Downloader
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
@@ -32,7 +32,7 @@ VersionInfoCompany=IRQ
 VersionInfoDescription=IRQ Downloader Setup
 VersionInfoProductName={#MyAppName}
 VersionInfoProductVersion={#MyAppVersion}
-VersionInfoCopyright=IRQ Downloader based on Ezoo Download by Ahmed Ezzat
+VersionInfoCopyright=Eng: Mohammed Shaheed Raheem; based on Ezoo Download by Ahmed Ezzat
 UninstallDisplayName={#MyAppName}
 Compression=lzma2/max
 SolidCompression=yes
@@ -80,6 +80,7 @@ Root: HKCU; Subkey: "Software\Classes\ezoo-download\shell\open\command"; ValueTy
 
 [Run]
 Filename: "{app}\{#MyAppExe}"; Description: "Launch IRQ Downloader now"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExe}"; Flags: nowait; Check: WizardSilent
 
 [UninstallRun]
 Filename: "{cmd}"; Parameters: "/C taskkill /IM {#MyAppExe} /F"; Flags: runhidden; RunOnceId: "StopIRQ"

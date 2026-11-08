@@ -81,8 +81,8 @@ pub(crate) struct PendingOpen {
 /// Everything background threads need. All fields are Send.
 #[derive(Clone)]
 pub(crate) struct Ctx {
-    mgr: Arc<Manager>,
-    rt: tokio::runtime::Handle,
+    pub(crate) mgr: Arc<Manager>,
+    pub(crate) rt: tokio::runtime::Handle,
     main: Weak<MainWindow>,
     add: Weak<AddDialog>,
     add_state: Arc<Mutex<AddState>>,
@@ -109,7 +109,7 @@ pub(crate) struct Selection {
 /// Things that only live on the UI thread.
 #[derive(Clone)]
 pub(crate) struct Ui {
-    ctx: Ctx,
+    pub(crate) ctx: Ctx,
     rows: Rc<VecModel<DownloadRow>>,
     queues: Rc<VecModel<QueueRow>>,
     cats: Rc<VecModel<CatRow>>,
@@ -146,7 +146,7 @@ pub(crate) struct Ui {
     torrent: Weak<TorrentDialog>,
     torrent_rows: Rc<VecModel<LinkRow>>,
     browsers: Weak<BrowserDialog>,
-    updater: Weak<UpdateDialog>,
+    pub(crate) updater: Weak<UpdateDialog>,
     /// the download list's columns (order + widths) as the header shows them
     columns_model: Rc<VecModel<ColDef>>,
     browser_list: Rc<RefCell<Vec<browser::Browser>>>,
@@ -502,7 +502,7 @@ fn run() -> anyhow::Result<()> {
 
     wire_main(&ui);
     // a new version of the program itself: from GitHub, installed silently
-    update::spawn(&ui.ctx);
+    update::spawn(&ui);
     wire_add(&ui);
     wire_batch(&ui);
     wire_complete(&ui);
@@ -1191,6 +1191,8 @@ fn wire_main(ui: &Ui) {
                 let _ = d.hide();
             }
         });
+        let ui_update = ui.clone();
+        d.on_download_install(move || update::download_and_install(&ui_update));
     }
     main.on_about(about);
     main.on_quit(|| {

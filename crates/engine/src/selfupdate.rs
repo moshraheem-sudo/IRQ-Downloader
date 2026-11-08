@@ -20,8 +20,8 @@ use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
-pub const REPO: &str = "AhmedEzo686/ezoo-download";
-pub const SETUP_NAME: &str = "EzooDownload-Setup.exe";
+pub const REPO: &str = "moshraheem-sudo/IRQ-Downloader";
+pub const SETUP_NAME: &str = "IRQDownloader-Setup.exe";
 
 pub fn version_url() -> String {
     format!("https://github.com/{REPO}/releases/latest/download/version.json")
@@ -181,7 +181,7 @@ pub async fn download_with_progress(
     progress: &(dyn Fn(u64, Option<u64>) + Send + Sync),
 ) -> anyhow::Result<PathBuf> {
     std::fs::create_dir_all(dir)?;
-    let dest = dir.join(format!("EzooDownload-Setup-{}.exe", r.version.trim_start_matches('v')));
+    let dest = dir.join(format!("IRQDownloader-Setup-{}.exe", r.version.trim_start_matches('v')));
     if dest.exists() {
         if file_sha256(&dest)?.eq_ignore_ascii_case(&r.sha256) {
             return Ok(dest);
