@@ -49,6 +49,12 @@ msgstr "Скачать все или некоторые видео плейли�
 msgid "Download a .torrent file or a magnet link."
 msgstr "Скачать файл .torrent или magnet-ссылку."
 
+msgid "Move to queue"
+msgstr "Переместить в очередь"
+
+msgid "Delete from queue"
+msgstr "Убрать из очереди"
+
 msgid "{} downloads selected"
 msgstr "Выбрано загрузок: {}"
 
@@ -63,6 +69,9 @@ msgstr "Открыть с помощью…"
 
 msgid "Play while downloading"
 msgstr "Воспроизвести во время загрузки"
+
+msgid "Download a part of it…"
+msgstr "Скачать часть…"
 
 msgid "Open folder"
 msgstr "Открыть папку"
@@ -81,12 +90,6 @@ msgstr "Обновить адрес загрузки…"
 
 msgid "Move / Rename…"
 msgstr "Переместить / Переименовать…"
-
-msgid "Move to queue"
-msgstr "Переместить в очередь"
-
-msgid "Delete from queue"
-msgstr "Убрать из очереди"
 
 msgid "Copy address"
 msgstr "Копировать адрес"
@@ -124,8 +127,8 @@ msgstr "Удалить категорию"
 msgid "Properties…"
 msgstr "Свойства…"
 
-msgid "Ezoo Download"
-msgstr "Ezoo Download"
+msgid "IRQ Downloader"
+msgstr "IRQ Downloader"
 
 msgid "File Name"
 msgstr "Имя файла"
@@ -180,6 +183,9 @@ msgstr "Запустить сборщик сайтов…"
 
 msgid "Download a playlist…"
 msgstr "Скачать плейлист…"
+
+msgid "Download a part of a video…"
+msgstr "Скачать часть видео…"
 
 msgid "Add a torrent / magnet link…"
 msgstr "Добавить торрент / magnet-ссылку…"
@@ -262,8 +268,8 @@ msgstr "Спящий режим"
 msgid "Hibernate"
 msgstr "Гибернация"
 
-msgid "Exit Ezoo Download"
-msgstr "Выйти из Ezoo Download"
+msgid "Exit IRQ Downloader"
+msgstr "Выйти из IRQ Downloader"
 
 msgid "Scheduler…"
 msgstr "Планировщик…"
@@ -346,8 +352,8 @@ msgstr "Оформление…"
 msgid "Help"
 msgstr "Справка"
 
-msgid "Add Ezoo Download to my browser…"
-msgstr "Добавить Ezoo Download в мой браузер…"
+msgid "Add IRQ Downloader to my browser…"
+msgstr "Добавить IRQ Downloader в мой браузер…"
 
 msgid "Tip of the day…"
 msgstr "Совет дня…"
@@ -358,8 +364,8 @@ msgstr "Проверить обновления"
 msgid "Check for updates (video downloader)"
 msgstr "Проверить обновления (загрузчик видео)"
 
-msgid "About Ezoo Download"
-msgstr "О программе Ezoo Download"
+msgid "About IRQ Downloader"
+msgstr "О программе IRQ Downloader"
 
 msgid "Add URL"
 msgstr "Добавить URL"
@@ -598,6 +604,9 @@ msgstr "<< Скрыть подробности"
 msgid "Show details >>"
 msgstr "Подробнее >>"
 
+msgid "Next to the clock"
+msgstr "К часам"
+
 msgid "Pause"
 msgstr "Пауза"
 
@@ -613,8 +622,8 @@ msgstr "№"
 msgid "Info"
 msgstr "Инфо"
 
-msgid "Hide next to the clock"
-msgstr "Спрятать к часам"
+msgid "Drag me"
+msgstr "Перетащи меня"
 
 msgid "Download complete"
 msgstr "Загрузка завершена"
@@ -733,11 +742,17 @@ msgstr "Если завершена — показать, если нет — п
 msgid "Remember my choice (Options > Downloads)"
 msgstr "Запомнить мой выбор (Параметры > Загрузки)"
 
+msgid "Delete the downloaded files from the disk too (be careful)"
+msgstr "Удалить и скачанные файлы с диска (осторожно)"
+
+msgid "Don't show this question again"
+msgstr "Больше не задавать этот вопрос"
+
 msgid "All downloads are finished."
 msgstr "Все загрузки завершены."
 
-msgid "Ezoo Download will {} in {} seconds."
-msgstr "Ezoo Download: {} через {} с."
+msgid "IRQ Downloader will {} in {} seconds."
+msgstr "IRQ Downloader: {} через {} с."
 
 msgid "Now"
 msgstr "Сейчас"
@@ -784,8 +799,8 @@ msgstr "Сб"
 msgid "Sun"
 msgstr "Вс"
 
-msgid "Start the queue when Ezoo Download starts"
-msgstr "Запускать очередь при запуске Ezoo Download"
+msgid "Start the queue when IRQ Downloader starts"
+msgstr "Запускать очередь при запуске IRQ Downloader"
 
 msgid "Stop the queue at"
 msgstr "Остановить очередь в"
@@ -840,6 +855,9 @@ msgstr "https://example.com/gallery/"
 
 msgid "Start exploring"
 msgstr "Начать обход"
+
+msgid "Some pages make their links only in the browser (with scripts, or as plain text). For them: open the page in the browser, right-click it and choose \"Download all links with IRQ Downloader\": every link you see there is collected."
+msgstr "Некоторые страницы создают ссылки только в браузере (скриптами или простым текстом). Для них: откройте страницу в браузере, щёлкните правой кнопкой и выберите \"Download all links with IRQ Downloader\": будет собрана каждая видимая ссылка."
 
 msgid "Get"
 msgstr "Собирать"
@@ -946,8 +964,8 @@ msgstr "Следующий совет"
 msgid "Refresh download address"
 msgstr "Обновить адрес загрузки"
 
-msgid "1. Open the web page where you got this file.\n2. Click the download link there again (or start the video).\n3. Ezoo Download takes the new address and continues from where it stopped."
-msgstr "1. Откройте веб-страницу, откуда вы получили этот файл.\n2. Снова нажмите там ссылку для скачивания (или запустите видео).\n3. Ezoo Download возьмёт новый адрес и продолжит с того места, где остановился."
+msgid "1. Open the web page where you got this file.\n2. Click the download link there again (or start the video).\n3. IRQ Downloader takes the new address and continues from where it stopped."
+msgstr "1. Откройте веб-страницу, откуда вы получили этот файл.\n2. Снова нажмите там ссылку для скачивания (или запустите видео).\n3. IRQ Downloader возьмёт новый адрес и продолжит с того места, где остановился."
 
 msgid "Open the page"
 msgstr "Открыть страницу"
@@ -970,8 +988,8 @@ msgstr "Не ждать"
 msgid "Play"
 msgstr "Воспроизвести"
 
-msgid "Ezoo Download – Options"
-msgstr "Ezoo Download – Параметры"
+msgid "IRQ Downloader – Options"
+msgstr "IRQ Downloader – Параметры"
 
 msgid "General"
 msgstr "Общие"
@@ -1021,8 +1039,8 @@ msgstr "Обзор…"
 msgid "Picture visibility"
 msgstr "Видимость изображения"
 
-msgid "Launch Ezoo Download on Windows startup"
-msgstr "Запускать Ezoo Download вместе с Windows"
+msgid "Launch IRQ Downloader on Windows startup"
+msgstr "Запускать IRQ Downloader вместе с Windows"
 
 msgid "Keep running next to the clock when the window is closed"
 msgstr "Оставаться рядом с часами при закрытии окна"
@@ -1032,6 +1050,9 @@ msgstr "Следить за буфером обмена на ссылки для
 
 msgid "Automatically start downloading links placed in the clipboard"
 msgstr "Автоматически скачивать ссылки, попавшие в буфер обмена"
+
+msgid "Draw the windows with the graphics card (uses more memory; after a restart)"
+msgstr "Рисовать окна видеокартой (больше памяти; после перезапуска)"
 
 msgid "Show \"Tip of the day\" at startup"
 msgstr "Показывать \"Совет дня\" при запуске"
@@ -1048,8 +1069,8 @@ msgstr "Показать свойства"
 msgid "Browser integration"
 msgstr "Интеграция с браузером"
 
-msgid "Chrome and Edge: load the \"extension\" folder in chrome://extensions (Developer mode > Load unpacked). Downloads, videos and the right click menu then go to Ezoo Download."
-msgstr "Chrome и Edge: загрузите папку \"extension\" в chrome://extensions (Режим разработчика > Загрузить распакованное расширение). Тогда загрузки, видео и меню правого щелчка пойдут в Ezoo Download."
+msgid "Chrome and Edge: load the \"extension\" folder in chrome://extensions (Developer mode > Load unpacked). Downloads, videos and the right click menu then go to IRQ Downloader."
+msgstr "Chrome и Edge: загрузите папку \"extension\" в chrome://extensions (Режим разработчика > Загрузить распакованное расширение). Тогда загрузки, видео и меню правого щелчка пойдут в IRQ Downloader."
 
 msgid "Hold this key to let the browser download by itself"
 msgstr "Удерживайте эту клавишу, чтобы браузер скачивал сам"
@@ -1066,8 +1087,8 @@ msgstr "Shift"
 msgid "None"
 msgstr "Нет"
 
-msgid "Hold this key to force Ezoo Download to take a link"
-msgstr "Удерживайте эту клавишу, чтобы Ezoo Download обязательно взял ссылку"
+msgid "Hold this key to force IRQ Downloader to take a link"
+msgstr "Удерживайте эту клавишу, чтобы IRQ Downloader обязательно взял ссылку"
 
 msgid "Browser extension port"
 msgstr "Порт расширения браузера"
@@ -1125,6 +1146,15 @@ msgstr "Показывать окно \"Сведения о файле\" для 
 
 msgid "Start downloading immediately while showing \"Download File Info\""
 msgstr "Сразу начинать загрузку, показывая \"Сведения о файле\""
+
+msgid "Ask before removing downloads from the list"
+msgstr "Спрашивать перед удалением загрузок из списка"
+
+msgid "Quality of MP3 files"
+msgstr "Качество файлов MP3"
+
+msgid "Download the subtitles of videos too, in these languages:"
+msgstr "Скачивать и субтитры видео на этих языках:"
 
 msgid "Show the download progress window"
 msgstr "Показывать окно хода загрузки"
@@ -1279,8 +1309,8 @@ msgstr "Файлы .wav. Пусто = без звука для этого соб
 msgid "Turn the speed limiter on"
 msgstr "Включить ограничитель скорости"
 
-msgid "Always turn on the speed limiter when Ezoo Download starts"
-msgstr "Всегда включать ограничитель при запуске Ezoo Download"
+msgid "Always turn on the speed limiter when IRQ Downloader starts"
+msgstr "Всегда включать ограничитель при запуске IRQ Downloader"
 
 msgid "Every download can also have its own limit: its progress window > Speed Limiter tab."
 msgstr "У каждой загрузки может быть свой лимит: её окно хода загрузки > вкладка «Ограничитель скорости»."
@@ -1381,14 +1411,17 @@ msgstr "Нумеровать файлы"
 msgid "Not installed on this computer"
 msgstr "Не установлен на этом компьютере"
 
-msgid "Add Ezoo Download to your browser"
-msgstr "Добавьте Ezoo Download в браузер"
+msgid "Add IRQ Downloader to your browser"
+msgstr "Добавьте IRQ Downloader в браузер"
 
 msgid "Click your browser:"
 msgstr "Нажмите на свой браузер:"
 
 msgid "Almost done:"
 msgstr "Почти готово:"
+
+msgid "Repair the add-in"
+msgstr "Восстановить дополнение"
 
 msgid "Copy folder path"
 msgstr "Копировать путь к папке"
@@ -1399,17 +1432,95 @@ msgstr "Версия {}"
 msgid "Coded by Ahmed Ezzat"
 msgstr "Автор: Ahmed Ezzat"
 
-msgid "Like Ezoo Download? You can support its development:"
-msgstr "Нравится Ezoo Download? Вы можете поддержать разработку:"
+msgid "Official download page (GitHub)"
+msgstr "Официальная страница загрузки (GitHub)"
+
+msgid "Download IRQ Downloader only from its official page."
+msgstr "Скачивайте IRQ Downloader только с официальной страницы."
+
+msgid "© Ezoo Tech – All rights reserved"
+msgstr "© Ezoo Tech – Все права защищены"
+
+msgid "Like IRQ Downloader? You can support its development:"
+msgstr "Нравится IRQ Downloader? Вы можете поддержать разработку:"
 
 msgid "Support with PayPal"
 msgstr "Поддержать через PayPal"
 
-msgid "What's new in Ezoo Download"
-msgstr "Что нового в Ezoo Download"
+msgid "Support with InstaPay"
+msgstr "Поддержать через InstaPay"
 
-msgid "Ezoo Download is free and has no ads. If it helps you and you would like to support its development, you can send a gift with PayPal. Thank you!"
-msgstr "Ezoo Download бесплатный и без рекламы. Если он вам полезен и вы хотите поддержать его развитие, можно отправить пожертвование через PayPal. Спасибо!"
+msgid "InstaPay: a7medek@instapay (scan the code with your bank's app)"
+msgstr "InstaPay: a7medek@instapay (отсканируйте код приложением банка)"
+
+msgid "Download a part of a video"
+msgstr "Скачать часть видео"
+
+msgid "Paste the address of the video (its page, or a link to the video or stream):"
+msgstr "Вставьте адрес видео (его страницу или ссылку на видео или поток):"
+
+msgid "Looking…"
+msgstr "Поиск…"
+
+msgid "Get the video"
+msgstr "Получить видео"
+
+msgid "Quality:"
+msgstr "Качество:"
+
+msgid "From:"
+msgstr "С:"
+
+msgid "To:"
+msgstr "По:"
+
+msgid "Length:"
+msgstr "Длительность:"
+
+msgid "Cut:"
+msgstr "Обрезка:"
+
+msgid "Quick cut (recommended)"
+msgstr "Быстрая обрезка (рекомендуется)"
+
+msgid "Exact cut"
+msgstr "Точная обрезка"
+
+msgid "Quick cut"
+msgstr "Быстрая обрезка"
+
+msgid "Takes seconds and keeps the quality exactly as it is (nothing is made again). A video can only start on a whole picture, so the part may start a second or two before the time you chose."
+msgstr "Занимает секунды и сохраняет качество без изменений (ничего не пересоздаётся). Видео может начинаться только с полного кадра, поэтому часть может начаться на секунду-две раньше выбранного времени."
+
+msgid "Starts and ends on the very second you chose. The picture of the part is made again, so it takes longer (about as long as the part plays, or less) and works the processor. Sound alone is always cut exactly."
+msgstr "Начинается и заканчивается точно в выбранную секунду. Изображение части создаётся заново, поэтому это дольше (примерно как длится часть или меньше) и нагружает процессор. Звук отдельно всегда обрезается точно."
+
+msgid "Preparing the preview…"
+msgstr "Подготовка просмотра…"
+
+msgid "Preview the part"
+msgstr "Посмотреть часть"
+
+msgid "Download the part"
+msgstr "Скачать часть"
+
+msgid "Support IRQ Downloader"
+msgstr "Поддержать IRQ Downloader"
+
+msgid "Did IRQ Downloader save you time?"
+msgstr "IRQ Downloader сэкономил вам время?"
+
+msgid "It is free and has no ads. If you like, you can support its development with any amount."
+msgstr "Программа бесплатная и без рекламы. Если хотите, можете поддержать её развитие любой суммой."
+
+msgid "Not now"
+msgstr "Не сейчас"
+
+msgid "What's new in IRQ Downloader"
+msgstr "Что нового в IRQ Downloader"
+
+msgid "IRQ Downloader is free and has no ads. If it helps you and you would like to support its development, you can send a gift with PayPal or InstaPay. Thank you!"
+msgstr "IRQ Downloader бесплатный и без рекламы. Если он вам полезен и вы хотите поддержать разработку, можно отправить подарок через PayPal или InstaPay. Спасибо!"
 
 msgid "Hide"
 msgstr "Скрыть"

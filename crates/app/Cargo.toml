@@ -3,7 +3,7 @@ name = "swiftget"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Ezoo Download – download manager (desktop app)"
+description = "IRQ Downloader – download manager (desktop app)"
 build = "build.rs"
 
 [dependencies]
@@ -31,7 +31,7 @@ slint-build = "~1.18"
 winresource = "0.1"
 
 [[bin]]
-name = "EzooDownload"
+name = "IRQDownloader"
 path = "src/main.rs"
 
 [target.'cfg(windows)'.dependencies]

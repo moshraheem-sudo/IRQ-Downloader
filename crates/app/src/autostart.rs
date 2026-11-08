@@ -7,7 +7,7 @@ mod imp {
     use std::process::Command;
 
     const KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
-    const NAME: &str = "EzooDownload";
+    const NAME: &str = "IRQDownloader";
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
     fn reg(args: &[&str]) -> bool {
@@ -25,7 +25,7 @@ mod imp {
 
     /// Installed with the setup program (which asked about autostart itself).
     pub fn installed_by_setup() -> bool {
-        reg(&["query", r"HKCU\Software\Ezoo\EzooDownload", "/v", "Installed"])
+        reg(&["query", r"HKCU\Software\IRQ\IRQDownload", "/v", "Installed"])
     }
 
     pub fn set(enabled: bool) -> bool {

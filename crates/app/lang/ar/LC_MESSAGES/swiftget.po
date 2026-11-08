@@ -49,6 +49,12 @@ msgstr "تحميل كل فيديوهات قائمة تشغيل أو بعضها."
 msgid "Download a .torrent file or a magnet link."
 msgstr "تحميل ملف تورنت أو رابط magnet."
 
+msgid "Move to queue"
+msgstr "نقل إلى قائمة الانتظار"
+
+msgid "Delete from queue"
+msgstr "حذف من قائمة الانتظار"
+
 msgid "{} downloads selected"
 msgstr "تم تحديد {} تحميلات"
 
@@ -63,6 +69,9 @@ msgstr "فتح باستخدام…"
 
 msgid "Play while downloading"
 msgstr "تشغيل أثناء التحميل"
+
+msgid "Download a part of it…"
+msgstr "تحميل جزء منه…"
 
 msgid "Open folder"
 msgstr "فتح المجلد"
@@ -81,12 +90,6 @@ msgstr "تحديث رابط التحميل…"
 
 msgid "Move / Rename…"
 msgstr "نقل / إعادة تسمية…"
-
-msgid "Move to queue"
-msgstr "نقل إلى قائمة الانتظار"
-
-msgid "Delete from queue"
-msgstr "حذف من قائمة الانتظار"
 
 msgid "Copy address"
 msgstr "نسخ الرابط"
@@ -124,8 +127,8 @@ msgstr "حذف التصنيف"
 msgid "Properties…"
 msgstr "الخصائص…"
 
-msgid "Ezoo Download"
-msgstr "Ezoo Download"
+msgid "IRQ Downloader"
+msgstr "IRQ Downloader"
 
 msgid "File Name"
 msgstr "اسم الملف"
@@ -180,6 +183,9 @@ msgstr "تشغيل جامع المواقع…"
 
 msgid "Download a playlist…"
 msgstr "تحميل قائمة تشغيل…"
+
+msgid "Download a part of a video…"
+msgstr "تحميل جزء من فيديو…"
 
 msgid "Add a torrent / magnet link…"
 msgstr "إضافة تورنت / رابط magnet…"
@@ -262,8 +268,8 @@ msgstr "سكون"
 msgid "Hibernate"
 msgstr "إسبات"
 
-msgid "Exit Ezoo Download"
-msgstr "الخروج من Ezoo Download"
+msgid "Exit IRQ Downloader"
+msgstr "الخروج من IRQ Downloader"
 
 msgid "Scheduler…"
 msgstr "المجدول…"
@@ -346,8 +352,8 @@ msgstr "المظهر…"
 msgid "Help"
 msgstr "مساعدة"
 
-msgid "Add Ezoo Download to my browser…"
-msgstr "إضافة Ezoo Download إلى متصفحي…"
+msgid "Add IRQ Downloader to my browser…"
+msgstr "إضافة IRQ Downloader إلى متصفحي…"
 
 msgid "Tip of the day…"
 msgstr "نصيحة اليوم…"
@@ -358,8 +364,8 @@ msgstr "البحث عن تحديثات"
 msgid "Check for updates (video downloader)"
 msgstr "البحث عن تحديثات (أداة الفيديو)"
 
-msgid "About Ezoo Download"
-msgstr "حول Ezoo Download"
+msgid "About IRQ Downloader"
+msgstr "حول IRQ Downloader"
 
 msgid "Add URL"
 msgstr "إضافة رابط"
@@ -598,6 +604,9 @@ msgstr "<< إخفاء التفاصيل"
 msgid "Show details >>"
 msgstr "إظهار التفاصيل >>"
 
+msgid "Next to the clock"
+msgstr "بجوار الساعة"
+
 msgid "Pause"
 msgstr "إيقاف مؤقت"
 
@@ -613,8 +622,8 @@ msgstr "رقم"
 msgid "Info"
 msgstr "معلومات"
 
-msgid "Hide next to the clock"
-msgstr "إخفاء بجوار الساعة"
+msgid "Drag me"
+msgstr "اسحبني"
 
 msgid "Download complete"
 msgstr "اكتمل التحميل"
@@ -733,11 +742,17 @@ msgstr "إذا كان مكتملاً اعرضه، وإن لم يكن استأن�
 msgid "Remember my choice (Options > Downloads)"
 msgstr "تذكّر اختياري (الخيارات > التحميلات)"
 
+msgid "Delete the downloaded files from the disk too (be careful)"
+msgstr "حذف الملفات المحمَّلة من القرص أيضًا (انتبه)"
+
+msgid "Don't show this question again"
+msgstr "عدم إظهار هذا السؤال مرة أخرى"
+
 msgid "All downloads are finished."
 msgstr "انتهت كل التحميلات."
 
-msgid "Ezoo Download will {} in {} seconds."
-msgstr "سيقوم Ezoo Download بـ{} خلال {} ثانية."
+msgid "IRQ Downloader will {} in {} seconds."
+msgstr "سيقوم IRQ Downloader بـ{} خلال {} ثانية."
 
 msgid "Now"
 msgstr "الآن"
@@ -784,8 +799,8 @@ msgstr "السبت"
 msgid "Sun"
 msgstr "الأحد"
 
-msgid "Start the queue when Ezoo Download starts"
-msgstr "بدء القائمة عند تشغيل Ezoo Download"
+msgid "Start the queue when IRQ Downloader starts"
+msgstr "بدء القائمة عند تشغيل IRQ Downloader"
 
 msgid "Stop the queue at"
 msgstr "إيقاف القائمة في"
@@ -840,6 +855,9 @@ msgstr "https://example.com/gallery/"
 
 msgid "Start exploring"
 msgstr "بدء الاستكشاف"
+
+msgid "Some pages make their links only in the browser (with scripts, or as plain text). For them: open the page in the browser, right-click it and choose \"Download all links with IRQ Downloader\": every link you see there is collected."
+msgstr "بعض الصفحات تصنع روابطها داخل المتصفح فقط (بالسكربتات، أو كنص عادي). لهذه الصفحات: افتح الصفحة في المتصفح، واضغط عليها بزر الفأرة الأيمن واختر \"Download all links with IRQ Downloader\": كل رابط تراه هناك يُجمع."
 
 msgid "Get"
 msgstr "جلب"
@@ -946,8 +964,8 @@ msgstr "النصيحة التالية"
 msgid "Refresh download address"
 msgstr "تحديث رابط التحميل"
 
-msgid "1. Open the web page where you got this file.\n2. Click the download link there again (or start the video).\n3. Ezoo Download takes the new address and continues from where it stopped."
-msgstr "1. افتح صفحة الويب التي حصلت منها على هذا الملف.\n2. اضغط رابط التحميل هناك مرة أخرى (أو شغّل الفيديو).\n3. يأخذ Ezoo Download الرابط الجديد ويكمل من حيث توقف."
+msgid "1. Open the web page where you got this file.\n2. Click the download link there again (or start the video).\n3. IRQ Downloader takes the new address and continues from where it stopped."
+msgstr "1. افتح صفحة الويب التي حصلت منها على هذا الملف.\n2. اضغط رابط التحميل هناك مرة أخرى (أو شغّل الفيديو).\n3. يأخذ IRQ Downloader الرابط الجديد ويكمل من حيث توقف."
 
 msgid "Open the page"
 msgstr "فتح الصفحة"
@@ -970,8 +988,8 @@ msgstr "إيقاف الانتظار"
 msgid "Play"
 msgstr "تشغيل"
 
-msgid "Ezoo Download – Options"
-msgstr "Ezoo Download – الخيارات"
+msgid "IRQ Downloader – Options"
+msgstr "IRQ Downloader – الخيارات"
 
 msgid "General"
 msgstr "عام"
@@ -1021,8 +1039,8 @@ msgstr "استعراض…"
 msgid "Picture visibility"
 msgstr "وضوح الصورة"
 
-msgid "Launch Ezoo Download on Windows startup"
-msgstr "تشغيل Ezoo Download مع بدء ويندوز"
+msgid "Launch IRQ Downloader on Windows startup"
+msgstr "تشغيل IRQ Downloader مع بدء ويندوز"
 
 msgid "Keep running next to the clock when the window is closed"
 msgstr "الاستمرار بجانب الساعة عند إغلاق النافذة"
@@ -1032,6 +1050,9 @@ msgstr "مراقبة الحافظة لروابط التحميل"
 
 msgid "Automatically start downloading links placed in the clipboard"
 msgstr "بدء تحميل الروابط المنسوخة للحافظة تلقائياً"
+
+msgid "Draw the windows with the graphics card (uses more memory; after a restart)"
+msgstr "رسم النوافذ بكارت الشاشة (يستهلك ذاكرة أكثر؛ بعد إعادة التشغيل)"
 
 msgid "Show \"Tip of the day\" at startup"
 msgstr "إظهار \"نصيحة اليوم\" عند البدء"
@@ -1048,8 +1069,8 @@ msgstr "إظهار الخصائص"
 msgid "Browser integration"
 msgstr "التكامل مع المتصفح"
 
-msgid "Chrome and Edge: load the \"extension\" folder in chrome://extensions (Developer mode > Load unpacked). Downloads, videos and the right click menu then go to Ezoo Download."
-msgstr "كروم وإيدج: حمّل مجلد \"extension\" من chrome://extensions (وضع المطوّر > Load unpacked). بعدها تذهب التحميلات والفيديوهات وقائمة الكليك يمين إلى Ezoo Download."
+msgid "Chrome and Edge: load the \"extension\" folder in chrome://extensions (Developer mode > Load unpacked). Downloads, videos and the right click menu then go to IRQ Downloader."
+msgstr "كروم وإيدج: حمّل مجلد \"extension\" من chrome://extensions (وضع المطوّر > Load unpacked). بعدها تذهب التحميلات والفيديوهات وقائمة الكليك يمين إلى IRQ Downloader."
 
 msgid "Hold this key to let the browser download by itself"
 msgstr "اضغط هذا المفتاح ليحمّل المتصفح بنفسه"
@@ -1066,8 +1087,8 @@ msgstr "Shift"
 msgid "None"
 msgstr "لا شيء"
 
-msgid "Hold this key to force Ezoo Download to take a link"
-msgstr "اضغط هذا المفتاح لإجبار Ezoo Download على أخذ الرابط"
+msgid "Hold this key to force IRQ Downloader to take a link"
+msgstr "اضغط هذا المفتاح لإجبار IRQ Downloader على أخذ الرابط"
 
 msgid "Browser extension port"
 msgstr "منفذ إضافة المتصفح"
@@ -1125,6 +1146,15 @@ msgstr "إظهار نافذة \"معلومات ملف التحميل\" للتح�
 
 msgid "Start downloading immediately while showing \"Download File Info\""
 msgstr "بدء التحميل فوراً أثناء عرض \"معلومات ملف التحميل\""
+
+msgid "Ask before removing downloads from the list"
+msgstr "السؤال قبل إزالة التحميلات من القائمة"
+
+msgid "Quality of MP3 files"
+msgstr "جودة ملفات MP3"
+
+msgid "Download the subtitles of videos too, in these languages:"
+msgstr "تحميل ترجمة الفيديوهات أيضًا، بهذه اللغات:"
 
 msgid "Show the download progress window"
 msgstr "إظهار نافذة تقدّم التحميل"
@@ -1279,8 +1309,8 @@ msgstr "ملفات ‎.wav‎. فارغ = بلا صوت لهذا الحدث."
 msgid "Turn the speed limiter on"
 msgstr "تشغيل محدد السرعة"
 
-msgid "Always turn on the speed limiter when Ezoo Download starts"
-msgstr "تشغيل محدد السرعة دائماً عند بدء Ezoo Download"
+msgid "Always turn on the speed limiter when IRQ Downloader starts"
+msgstr "تشغيل محدد السرعة دائماً عند بدء IRQ Downloader"
 
 msgid "Every download can also have its own limit: its progress window > Speed Limiter tab."
 msgstr "يمكن أن يكون لكل تحميل حد خاص: نافذة تقدّمه > تبويب محدد السرعة."
@@ -1381,14 +1411,17 @@ msgstr "ترقيم الملفات"
 msgid "Not installed on this computer"
 msgstr "غير مثبّت على هذا الكمبيوتر"
 
-msgid "Add Ezoo Download to your browser"
-msgstr "إضافة Ezoo Download إلى متصفحك"
+msgid "Add IRQ Downloader to your browser"
+msgstr "إضافة IRQ Downloader إلى متصفحك"
 
 msgid "Click your browser:"
 msgstr "اضغط على متصفحك:"
 
 msgid "Almost done:"
 msgstr "خطوة أخيرة:"
+
+msgid "Repair the add-in"
+msgstr "إصلاح الإضافة"
 
 msgid "Copy folder path"
 msgstr "نسخ مسار المجلد"
@@ -1399,17 +1432,95 @@ msgstr "الإصدار {}"
 msgid "Coded by Ahmed Ezzat"
 msgstr "Coded by Ahmed Ezzat"
 
-msgid "Like Ezoo Download? You can support its development:"
-msgstr "أعجبك Ezoo Download؟ يمكنك دعم تطويره:"
+msgid "Official download page (GitHub)"
+msgstr "صفحة التحميل الرسمية (GitHub)"
+
+msgid "Download IRQ Downloader only from its official page."
+msgstr "حمّل IRQ Downloader من صفحته الرسمية فقط."
+
+msgid "© Ezoo Tech – All rights reserved"
+msgstr "© Ezoo Tech – كل الحقوق محفوظة"
+
+msgid "Like IRQ Downloader? You can support its development:"
+msgstr "أعجبك IRQ Downloader؟ يمكنك دعم تطويره:"
 
 msgid "Support with PayPal"
 msgstr "ادعم عبر PayPal"
 
-msgid "What's new in Ezoo Download"
-msgstr "الجديد في Ezoo Download"
+msgid "Support with InstaPay"
+msgstr "ادعم عبر InstaPay"
 
-msgid "Ezoo Download is free and has no ads. If it helps you and you would like to support its development, you can send a gift with PayPal. Thank you!"
-msgstr "برنامج Ezoo Download مجاني تمامًا وبدون إعلانات. لو البرنامج بيفيدك وحابب تدعم تطويره، تقدر تبعت دعمك عن طريق PayPal. شكرًا لك!"
+msgid "InstaPay: a7medek@instapay (scan the code with your bank's app)"
+msgstr "امسح الكود بتطبيق البنك أو InstaPay — a7medek@instapay"
+
+msgid "Download a part of a video"
+msgstr "تحميل جزء من فيديو"
+
+msgid "Paste the address of the video (its page, or a link to the video or stream):"
+msgstr "الصق عنوان الفيديو (صفحته، أو رابط الفيديو أو البث):"
+
+msgid "Looking…"
+msgstr "جارٍ البحث…"
+
+msgid "Get the video"
+msgstr "جلب الفيديو"
+
+msgid "Quality:"
+msgstr "الجودة:"
+
+msgid "From:"
+msgstr "من:"
+
+msgid "To:"
+msgstr "إلى:"
+
+msgid "Length:"
+msgstr "المدة:"
+
+msgid "Cut:"
+msgstr "القص:"
+
+msgid "Quick cut (recommended)"
+msgstr "قص سريع (مستحسن)"
+
+msgid "Exact cut"
+msgstr "قص دقيق"
+
+msgid "Quick cut"
+msgstr "قص سريع"
+
+msgid "Takes seconds and keeps the quality exactly as it is (nothing is made again). A video can only start on a whole picture, so the part may start a second or two before the time you chose."
+msgstr "يستغرق ثوانيَ ويحافظ على الجودة كما هي تمامًا (لا يُعاد إنشاء أي شيء). لا يمكن للفيديو أن يبدأ إلا عند صورة كاملة، لذلك قد يبدأ الجزء قبل الوقت الذي اخترته بثانية أو ثانيتين."
+
+msgid "Starts and ends on the very second you chose. The picture of the part is made again, so it takes longer (about as long as the part plays, or less) and works the processor. Sound alone is always cut exactly."
+msgstr "يبدأ وينتهي في الثانية التي اخترتها بالضبط. تُعاد صناعة صورة الجزء، لذلك يستغرق وقتًا أطول (قرابة مدة الجزء أو أقل) ويُشغّل المعالج. الصوت وحده يُقص دائمًا بدقة."
+
+msgid "Preparing the preview…"
+msgstr "جارٍ تجهيز المعاينة…"
+
+msgid "Preview the part"
+msgstr "معاينة الجزء"
+
+msgid "Download the part"
+msgstr "تحميل الجزء"
+
+msgid "Support IRQ Downloader"
+msgstr "ادعم IRQ Downloader"
+
+msgid "Did IRQ Downloader save you time?"
+msgstr "هل وفّر لك IRQ Downloader وقتك؟"
+
+msgid "It is free and has no ads. If you like, you can support its development with any amount."
+msgstr "البرنامج مجاني وبدون إعلانات. إن أحببت، يمكنك دعم تطويره بأي مبلغ."
+
+msgid "Not now"
+msgstr "ليس الآن"
+
+msgid "What's new in IRQ Downloader"
+msgstr "الجديد في IRQ Downloader"
+
+msgid "IRQ Downloader is free and has no ads. If it helps you and you would like to support its development, you can send a gift with PayPal or InstaPay. Thank you!"
+msgstr "برنامج IRQ Downloader مجاني تمامًا وبدون إعلانات. لو البرنامج بيفيدك وحابب تدعم تطويره، تقدر تبعت دعمك عن طريق PayPal أو InstaPay. شكرًا لك!"
 
 msgid "Hide"
 msgstr "إخفاء"

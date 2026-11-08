@@ -1,5 +1,5 @@
 //! Download lists in the .ef2 list format, so lists move between
-//! Ezoo Download and other download managers:
+//! IRQ Downloader and other download managers:
 //!
 //! ```text
 //! <

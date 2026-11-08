@@ -125,7 +125,7 @@ pub(crate) fn delete_category(ui: &Ui, name: &str) {
     let mut s = ui.ctx.mgr.settings();
     let Some(c) = s.categories.iter().find(|c| c.name == name) else { return };
     if c.builtin || name == "General" {
-        message(&t("This category comes with Ezoo Download and can't be deleted (you can change its file types in Properties)."));
+        message(&t("This category comes with IRQ Downloader and can't be deleted (you can change its file types in Properties)."));
         return;
     }
     if !ask(&tf("Delete the category “{}”?\nIts files stay where they are and move to their file type's category.", &[&name])) {
@@ -260,10 +260,27 @@ fn save_properties(ui: &Ui) {
         d.set_message(format!("{e:#}").into());
         return;
     }
-    let target = PathBuf::from(d.get_save_to().trim());
+    let mut target = PathBuf::from(d.get_save_to().trim());
+    // a name typed without its extension keeps the file's own
+    if let Some(n) = target.file_name().map(|n| crate::with_extension_of(&n.to_string_lossy(), &v.file_name)) {
+        target.set_file_name(n);
+    }
     if !target.as_os_str().is_empty() && target != v.save_path {
         let result = if v.status == Status::Completed {
-            ui.ctx.mgr.move_file(id, &target)
+            // on its own thread: a move to another disk is a copy
+            let mgr = ui.ctx.mgr.clone();
+            std::thread::spawn(move || {
+                if let Err(e) = mgr.move_file(id, &target, false) {
+                    let text = format!("{e:#}");
+                    let text = if text.contains("is already in that folder") {
+                        crate::i18n::t("A file with this name is already in that folder, so nothing was moved. Choose another name.")
+                    } else {
+                        text
+                    };
+                    let _ = slint::invoke_from_event_loop(move || crate::message(&text));
+                }
+            });
+            Ok(())
         } else {
             let dir = target.parent().map(Path::to_path_buf).unwrap_or_default();
             let name = target.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
@@ -349,22 +366,11 @@ pub(crate) fn is_web_address(s: &str) -> bool {
 }
 
 /// What the newest version brings (shown once after an automatic update).
-const WHATS_NEW: [&str; 15] = [
-    "Torrents: open a .torrent file or a magnet link and choose which of its files to download.",
-    "A dropped internet connection no longer stops a download: it waits and goes on by itself from where it was.",
-    "An expired link or a removed file is explained in plain words, with what to do about it.",
-    "Watch a video or listen to a song while it is still downloading (right-click > Play while downloading).",
-    "YouTube videos can be saved as MP3 files.",
-    "Qualities are shown in plain words too: SD, HD, Full HD, 2K, 4K.",
-    "The video button in the browser lists every quality with its format, length and size, has a size slider, and works on videos in frames, in full screen and in more players.",
-    "Videos that need a login or an age check use your browser's sign-in, also in playlists.",
-    "Toolbar buttons explain what they do when the mouse rests on them.",
-    "A download's window can be hidden next to the clock.",
-    "The browser add-in can be paused from its own window, without turning it off in the browser's extensions page.",
-    "File icons are easier to tell apart.",
-    "Menus show one clear mark on the chosen option.",
-    "The window of a finished download no longer offers \"Open with…\", so a file can't be changed by mistake.",
-    "Fixed a crash around the Tips window.",
+const WHATS_NEW: [&str; 4] = [
+    "The Firefox add-on stays up to date: when the add-on in Firefox is older than the program, IRQ Downloader says so and opens the new one (click \"Add\" in Firefox).",
+    "Download File Info shows the whole size of a video whose picture and sound come apart (the same size as in the add-in), with the size of each.",
+    "The add-in downloads whole videos; \"Download a part of a video\" is in the program for now (Tasks > Download a part of a video).",
+    "Messages of the add-in in Arabic read right to left, and the setup never puts an older Firefox add-on back.",
 ];
 
 thread_local! {
@@ -377,12 +383,12 @@ pub(crate) fn whats_new(ui: &Ui) {
     let Ok(d) = WhatsNewDialog::new() else { return };
     crate::set_theme_of(d.global::<Theme>(), &crate::Look::of(&ui.ctx.mgr.settings()));
     d.set_rtl(crate::i18n::is_arabic());
-    d.set_heading(tf("Ezoo Download was updated to version {} by itself.", &[&env!("CARGO_PKG_VERSION")]).into());
+    d.set_heading(tf("IRQ Downloader was updated to version {} by itself.", &[&env!("CARGO_PKG_VERSION")]).into());
     let items: Vec<SharedString> = WHATS_NEW.iter().map(|l| t(l).into()).collect();
     d.set_items(ModelRc::new(VecModel::from(items)));
     d.on_open_link(|u| {
         if u.starts_with("https://") {
-            let _ = open::that(u.as_str());
+            let _ = open::that_detached(u.as_str());
         }
     });
     let w = d.as_weak();
@@ -397,10 +403,107 @@ pub(crate) fn whats_new(ui: &Ui) {
     WHATS_NEW_WIN.with(|x| *x.borrow_mut() = Some(d));
 }
 
+// ---------------------------------------------------------------- AV1 videos
+
+/// The first video in AV1 (a much smaller file of the same picture, what
+/// Facebook and YouTube give in their best qualities): Windows plays its
+/// sound but shows no picture without Microsoft's free AV1 extension. Said
+/// once, a moment after it finished.
+pub(crate) fn av1_tip(ui: &Ui, done: &[u64]) {
+    let s = ui.ctx.mgr.settings();
+    if s.av1_tip_shown {
+        return;
+    }
+    let av1 = done
+        .iter()
+        .filter_map(|id| ui.ctx.mgr.get(*id))
+        .any(|v| v.source_key.as_deref().is_some_and(|k| k.contains("AV1")) && v.status == Status::Completed);
+    if !av1 {
+        return;
+    }
+    let mut s = s;
+    s.av1_tip_shown = true;
+    let _ = ui.ctx.mgr.set_settings(s);
+    slint::Timer::single_shot(std::time::Duration::from_secs(2), move || {
+        let text = t("This video is in AV1 (the same picture in a much smaller file). If your player plays only its sound, without the picture, get Microsoft's free \"AV1 Video Extension\" (or play it with VLC).\n\nOpen it in the Microsoft Store now?");
+        if crate::ask(&text) {
+            let _ = open::that_detached("ms-windows-store://search/?query=AV1%20Video%20Extension");
+        }
+    });
+}
+
+// ---------------------------------------------------------------- support
+
+/// Finished downloads before the word about supporting the program shows.
+const SUPPORT_AFTER: u64 = 50;
+/// And then not again for a month.
+const SUPPORT_EVERY: u64 = 30 * 24 * 3600;
+
+/// Shown now? (`count` downloads finished, last shown at `asked`, 0 = never)
+fn support_due(count: u64, asked: u64, now: u64) -> bool {
+    count >= SUPPORT_AFTER && (asked == 0 || now.saturating_sub(asked) >= SUPPORT_EVERY)
+}
+
+thread_local! {
+    static SUPPORT_WIN: std::cell::RefCell<Option<SupportDialog>> = const { std::cell::RefCell::new(None) };
+}
+
+/// `n` downloads just finished well: counted, and once it is time the small
+/// word about supporting the program shows (a few seconds later, when no
+/// other message is open and the main window is on the screen).
+pub(crate) fn finished_well(ui: &Ui, n: usize) {
+    if n == 0 {
+        return;
+    }
+    let mut s = ui.ctx.mgr.settings();
+    s.finished_count = s.finished_count.saturating_add(n as u64);
+    let due = support_due(s.finished_count, s.support_asked_at, crate::api::now_secs());
+    let _ = ui.ctx.mgr.set_settings(s);
+    if due {
+        let ui = ui.clone();
+        slint::Timer::single_shot(std::time::Duration::from_secs(3), move || ask_support_when_free(ui, 0));
+    }
+}
+
+fn ask_support_when_free(ui: Ui, tries: u32) {
+    let s = ui.ctx.mgr.settings();
+    if !support_due(s.finished_count, s.support_asked_at, crate::api::now_secs()) || SUPPORT_WIN.with(|x| x.borrow().is_some()) {
+        return;
+    }
+    let main_shown = ui.ctx.main.upgrade().map(|m| m.window().is_visible() && !m.window().is_minimized()).unwrap_or(false);
+    if modal_open() || !main_shown {
+        // not over another message, not while the program is next to the
+        // clock: the next finished download tries again
+        if tries < 40 && main_shown {
+            slint::Timer::single_shot(std::time::Duration::from_secs(3), move || ask_support_when_free(ui, tries + 1));
+        }
+        return;
+    }
+    let Ok(d) = SupportDialog::new() else { return };
+    crate::set_theme_of(d.global::<Theme>(), &crate::Look::of(&s));
+    let mut s = s;
+    s.support_asked_at = crate::api::now_secs();
+    let _ = ui.ctx.mgr.set_settings(s);
+    d.on_open_link(|u| {
+        if u.starts_with("https://") {
+            let _ = open::that_detached(u.as_str());
+        }
+    });
+    let w = d.as_weak();
+    d.on_close_window(move || {
+        if let Some(d) = w.upgrade() {
+            let _ = d.hide();
+        }
+        slint::Timer::single_shot(std::time::Duration::from_millis(1), || SUPPORT_WIN.with(|x| *x.borrow_mut() = None));
+    });
+    open_window!(d);
+    SUPPORT_WIN.with(|x| *x.borrow_mut() = Some(d));
+}
+
 const TIPS: [&str; 14] = [
-    "Copy a download link anywhere (Ctrl+C) and Ezoo Download offers to download it.",
+    "Copy a download link anywhere (Ctrl+C) and IRQ Downloader offers to download it.",
     "Play a video on a web page and click \"Download this video\" above it to choose the quality.",
-    "Right click a web page in Chrome or Edge and choose \"Download all links with Ezoo Download\" to pick files from the page.",
+    "Right click a web page in Chrome or Edge and choose \"Download all links with IRQ Downloader\" to pick files from the page.",
     "Every download uses up to 32 connections. If a server is slow with many, add it to Options > Connection > Exceptions.",
     "Make a queue (Queues > New queue) and set \"1 file at the same time\" to download files one after another.",
     "The Scheduler can start a queue at night and shut down the computer when everything is finished.",
@@ -470,7 +573,7 @@ pub(crate) fn refresh_received(ui: &Ui, id: u64, url: &str, headers: RequestHead
 
 pub(crate) fn export_list(mgr: &Arc<Manager>, kind: &str) {
     let ef2 = kind == "ef2";
-    let Some(path) = rfd::FileDialog::new()
+    let Some(path) = crate::winfx::file_box()
         .set_file_name(if ef2 { "ezoo-download-list.ef2" } else { "ezoo-download-links.txt" })
         .add_filter(if ef2 { "Download list" } else { "Text file" }, &[if ef2 { "ef2" } else { "txt" }])
         .save_file()
@@ -501,7 +604,7 @@ pub(crate) fn export_list(mgr: &Arc<Manager>, kind: &str) {
 
 pub(crate) fn import_list(ui: &Ui, kind: &str) {
     let ef2 = kind == "ef2";
-    let Some(path) = rfd::FileDialog::new()
+    let Some(path) = crate::winfx::file_box()
         .add_filter(if ef2 { "Download list" } else { "Text file" }, &[if ef2 { "ef2" } else { "txt" }])
         .pick_file()
     else {
@@ -581,7 +684,7 @@ pub(crate) fn wire(ui: &Ui) {
             let w = d.as_weak();
             d.on_browse(move || {
                 let Some(d) = w.upgrade() else { return };
-                if let Some(dir) = rfd::FileDialog::new().pick_folder() {
+                if let Some(dir) = crate::winfx::file_box().pick_folder() {
                     d.set_folder(dir.display().to_string().into());
                 }
             });
@@ -619,7 +722,7 @@ pub(crate) fn wire(ui: &Ui) {
             d.on_browse(move || {
                 let Some(d) = w.upgrade() else { return };
                 let current = PathBuf::from(d.get_save_to().as_str());
-                let mut dlg = rfd::FileDialog::new();
+                let mut dlg = crate::winfx::file_box();
                 if let Some(dir) = current.parent().filter(|p| p.exists()) {
                     dlg = dlg.set_directory(dir);
                 }
@@ -733,7 +836,7 @@ pub(crate) fn wire(ui: &Ui) {
                     // only a web page: the address came from the browser or
                     // a list file and must never start a program
                     if is_web_address(&page) {
-                        let _ = open::that(page.trim());
+                        let _ = open::that_detached(page.trim());
                     }
                 }
             });
@@ -772,7 +875,17 @@ pub(crate) fn wire(ui: &Ui) {
 
 #[cfg(test)]
 mod tests {
-    use super::is_web_address;
+    use super::{is_web_address, support_due};
+
+    #[test]
+    fn support_word_after_50_then_once_a_month() {
+        let day = 24 * 3600;
+        let now = 1_800_000_000;
+        assert!(!support_due(49, 0, now));
+        assert!(support_due(50, 0, now));
+        assert!(!support_due(500, now - 29 * day, now), "not again before a month");
+        assert!(support_due(500, now - 30 * day, now));
+    }
 
     #[test]
     fn only_web_pages_are_opened() {

@@ -1,6 +1,7 @@
 //! Site Grabber: explores a web site from a start page and collects the
 //! files it links to (images, videos, music, archives, documents...).
 
+use crate::http::SendOrdered;
 use crate::config::wildcard_match;
 use crate::filename;
 use crate::http::request;
@@ -126,7 +127,19 @@ pub fn extract_links(html: &str, base: &str) -> Vec<(String, String)> {
         let v = c.get(1).or(c.get(2)).map(|m| m.as_str()).unwrap_or("");
         push(v, String::new());
     }
+    // addresses written as text (lists of links in a post, a note, JSON in
+    // a script): many pages have their file links only like that
+    for m in text_url_re().find_iter(html) {
+        let u = m.as_str().trim_end_matches(['.', ',', ';', ':', '!', '?', '\\']);
+        // written inside JSON: "\/" is "/", "\u0026" is "&"
+        push(&u.replace("\\/", "/").replace("\\u0026", "&"), String::new());
+    }
     out
+}
+
+fn text_url_re() -> &'static regex::Regex {
+    static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    RE.get_or_init(|| regex::Regex::new(r#"https?:(?:\\?/){2}[^\s"'<>()\[\]{}|^`]+"#).unwrap())
 }
 
 fn ext_of(u: &url::Url) -> String {
@@ -150,7 +163,7 @@ fn allowed(opts: &GrabOptions, url: &str) -> bool {
 }
 
 async fn fetch_page(client: &Client, url: &str, opts: &GrabOptions) -> Option<(String, String)> {
-    let resp = request(client, url, &opts.headers, &opts.user_agent).send().await.ok()?;
+    let resp = request(client, url, &opts.headers, &opts.user_agent).send_ordered().await.ok()?;
     if !resp.status().is_success() {
         return None;
     }
@@ -287,6 +300,17 @@ pub fn template_exts(template: i32) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn links_written_as_text() {
+        let html = r#"<pre>Mirror 1: https://files.example/part1.rar, and https://files.example/part2.rar.</pre>
+            <script>var u = "https:\/\/cdn.example\/v.mp4"; var w = "https:\/\/cdn.example\/get?id=1\u0026t=2";</script>"#;
+        let links: Vec<String> = extract_links(html, "https://site/").into_iter().map(|(u, _)| u).collect();
+        assert!(links.contains(&"https://files.example/part1.rar".to_string()), "{links:?}");
+        assert!(links.contains(&"https://files.example/part2.rar".to_string()), "{links:?}");
+        assert!(links.contains(&"https://cdn.example/v.mp4".to_string()), "{links:?}");
+        assert!(links.contains(&"https://cdn.example/get?id=1&t=2".to_string()), "{links:?}");
+    }
+
     #[test]
     fn links_from_html() {
         let html = r##"<html><body>

@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-pub const DEFAULT_PORT: u16 = 9614;
+pub const DEFAULT_PORT: u16 = 9624;
 pub const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -81,7 +81,7 @@ pub struct QueueSchedule {
     pub once_date: String,
     /// Monday .. Sunday
     pub days: [bool; 7],
-    /// start the queue when Ezoo Download starts
+    /// start the queue when IRQ Downloader starts
     pub on_startup: bool,
     pub stop_enabled: bool,
     pub stop_time: String,
@@ -171,7 +171,7 @@ pub fn default_categories() -> Vec<CategoryDef> {
     ]
 }
 
-/// Extensions the browser extension hands to Ezoo Download (Options > File Types).
+/// Extensions the browser extension hands to IRQ Downloader (Options > File Types).
 pub const DEFAULT_CAPTURE_EXTS: &str = "3GP 7Z AAC ACE AIF APK ARJ ASF AVI BIN BZ2 DEB DMG EXE GZ GZIP IMG ISO LZH M4A M4V MKA MKV MOV MP3 MP4 MPA MPE MPEG MPG MSI MSU OGG OGV PDF PLJ PPS PPT PPTX QT R0* R1* RA RAR RM RMVB RPM SEA SIT SITX TAR TIF TIFF TGZ WAV WEBM WMA WMV XAPK XZ Z ZIP ZST DOC DOCX XLS XLSX FLAC OPUS";
 
 /// Server with its own connection count (Options > Connection > Exceptions).
@@ -195,7 +195,7 @@ pub struct SiteLogin {
 pub const MAIN_QUEUE: u64 = 1;
 
 /// Bump when defaults change in a way old settings files should pick up.
-const SETTINGS_VERSION: u32 = 4;
+const SETTINGS_VERSION: u32 = 5;
 
 /// Columns of the download list that can be shown or hidden (View > Columns).
 pub const ALL_COLUMNS: [&str; 11] =
@@ -237,6 +237,16 @@ pub struct Settings {
     pub user_agent: String,
     pub clipboard_monitor: bool,
     pub show_complete_dialog: bool,
+    /// Removing downloads from the list asks first (unticked in that question:
+    /// "Don't show this again"; Options > Downloads turns it back on)
+    pub ask_before_remove: bool,
+    /// ...and "Delete the downloaded files from the disk too" was ticked last time
+    pub remove_deletes_files: bool,
+    /// "Audio · MP3": the quality of the MP3 files made (kbps)
+    pub mp3_kbps: u32,
+    /// videos of sites (YouTube…): their subtitles too, in these languages
+    pub subtitles: bool,
+    pub subtitle_langs: String,
     pub browser_port: u16,
     /// A connection only splits a part when both halves are at least this big
     pub min_split_kb: u64,
@@ -298,7 +308,7 @@ pub struct Settings {
     pub skip_addresses: Vec<String>,
     /// browser: key that lets the browser download by itself ("alt", "ctrl", "shift", "none")
     pub skip_key: String,
-    /// browser: key that forces Ezoo Download to take any link
+    /// browser: key that forces IRQ Downloader to take any link
     pub force_key: String,
     /// "Download this video" panel on web players
     pub panel_enabled: bool,
@@ -353,12 +363,35 @@ pub struct Settings {
     pub toolbar_small: bool,
     /// options-on-completion: close running programs when shutting down
     pub force_shutdown: bool,
-    /// "Add Ezoo Download to your browser" was shown once
+    /// "Add IRQ Downloader to your browser" was shown once
     pub extension_prompted: bool,
     /// start downloading at once while "Download File Info" is shown
     pub start_while_info: bool,
     /// "en", "ar", or "" = the language of Windows
     pub language: String,
+    /// size of each window the user made bigger / smaller (logical pixels):
+    /// "main", "progress"...
+    pub window_sizes: std::collections::BTreeMap<String, (f32, f32)>,
+    /// the main window was maximized when the program closed
+    pub main_maximized: bool,
+    /// the progress window shows its details (connections list)
+    pub progress_details: bool,
+    /// draw the windows with the graphics card (more memory; off = the
+    /// processor draws them, works on every computer)
+    pub gpu_drawing: bool,
+    /// the word about AV1 videos (sound without picture in older players) was shown
+    pub av1_tip_shown: bool,
+    /// downloads that finished well (for the word about supporting the program)
+    pub finished_count: u64,
+    /// when that word was shown last (seconds since 1970; 0 = never)
+    pub support_asked_at: u64,
+    /// the key the browser add-in sends with every request (made at the
+    /// first start; encrypted on the disk)
+    #[serde(with = "crate::secret::string")]
+    pub api_token: String,
+    /// the port the add-in really talks to (chosen at random on this
+    /// computer; `browser_port` only answers "are you there" and pairing)
+    pub api_port: u16,
 }
 
 impl Default for Settings {
@@ -375,8 +408,13 @@ impl Default for Settings {
             speed_limit_kb: 0,
             retries: 10,
             user_agent: DEFAULT_USER_AGENT.into(),
-            clipboard_monitor: true,
+            clipboard_monitor: false,
             show_complete_dialog: true,
+            ask_before_remove: true,
+            remove_deletes_files: false,
+            mp3_kbps: 192,
+            subtitles: false,
+            subtitle_langs: "ar en".into(),
             browser_port: DEFAULT_PORT,
             min_split_kb: 256,
             schedule: Schedule::default(),
@@ -447,6 +485,15 @@ impl Default for Settings {
             extension_prompted: false,
             start_while_info: true,
             language: String::new(),
+            window_sizes: Default::default(),
+            main_maximized: false,
+            progress_details: false,
+            gpu_drawing: false,
+            av1_tip_shown: false,
+            finished_count: 0,
+            support_asked_at: 0,
+            api_token: String::new(),
+            api_port: 0,
         }
     }
 }
@@ -493,6 +540,11 @@ impl Settings {
                 }
             }
             s.schedule.enabled = false;
+        }
+        if s.version < 5 {
+            // v5: watching the clipboard is off until the user turns it on
+            // (it reads everything that is copied)
+            s.clipboard_monitor = false;
         }
         s.version = SETTINGS_VERSION;
         if !s.queues.iter().any(|q| q.id == MAIN_QUEUE) {
@@ -547,11 +599,14 @@ impl Settings {
             .ok()
             .and_then(|u| u.host_str().map(|h| h.to_ascii_lowercase()))
             .unwrap_or_default();
-        self.server_limits
+        let set = self
+            .server_limits
             .iter()
             .find(|l| host_matches(&host, &l.host))
             .map(|l| wanted.min(l.connections.max(1)))
-            .unwrap_or(wanted)
+            .unwrap_or(wanted);
+        // a site that said "too many requests" before: as many as it took
+        crate::http_download::learned_limit(url).map(|n| set.min(n)).unwrap_or(set)
     }
 
     /// Saved login for this address (Options > Site Logins).

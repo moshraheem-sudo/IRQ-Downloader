@@ -14,19 +14,25 @@ const chrome = {
       remove: async (k) => { for (const x of [].concat(k)) delete session[x]; },
     },
   },
-  downloads: { onCreated: on("dl"), cancel: async () => {}, erase: async () => {}, download: (o) => browserDl.push(o.url) },
+  downloads: { onCreated: on("dl"), onDeterminingFilename: on("det"), cancel: async (id) => { cancelled.push(id); }, erase: async () => {}, download: (o) => browserDl.push(o.url) },
   webRequest: { onHeadersReceived: on("headers"), onBeforeRequest: on("before") },
   tabs: { onUpdated: on("upd"), onRemoved: on("rm"), get: async (id) => ({ id, url: tabUrl }), query: async () => [{ id: 7 }],
           sendMessage: async (id, m) => tabMsgs.push(m) },
   action: { setBadgeBackgroundColor: () => {}, setBadgeText: async () => {} },
-  runtime: { onInstalled: on("inst"), onStartup: on("start"), onMessage: on("msg"), getManifest: () => ({ version: "1.0.4" }), reload: () => { reloads++; } },
+  runtime: { onInstalled: on("inst"), onStartup: on("start"), onMessage: on("msg"), getManifest: () => ({ version: "1.0.4" }), reload: () => { reloads++; }, getURL: (p) => "chrome-extension://sim/" + p },
   contextMenus: { removeAll: () => {}, create: () => {}, onClicked: on("ctx") },
   cookies: { getAll: async () => [] },
 };
-const ytCalls = []; const browserDl = []; let appDown = false;
+const ytCalls = []; const browserDl = []; const cancelled = []; const suggested = []; let appDown = false;
 const fetch = async (url, opts = {}) => {
+  // the program's key and real port, from the program's folder
+  if (url === "chrome-extension://sim/token.json") return { ok: true, status: 200, json: async () => ({ token: "k".repeat(64), port: 47000 }) };
+  if (url.startsWith("chrome-extension://sim/")) return { ok: true, status: 200, text: async () => "file" };
   if (url.endsWith("/ping") && pingExt) return { ok: true, status: 200, json: async () => ({ ext: pingExt }) };
   if (url.endsWith("/add")) { if (appDown) throw new TypeError("Failed to fetch"); sent.push(JSON.parse(opts.body)); }
+  if (url.endsWith("/resolve") && JSON.parse(opts.body).url.includes("unsupported.example")) {
+    return { ok: true, status: 200, json: async () => ({ ok: false, error: "Unsupported URL: https://unsupported.example/watch" }) };
+  }
   if (url.endsWith("/resolve")) {
     ytCalls.push(JSON.parse(opts.body));
     await new Promise((r) => setTimeout(r, 30)); // yt-dlp takes a moment
@@ -34,9 +40,15 @@ const fetch = async (url, opts = {}) => {
       { key: "1080p|MP4", label: "1080p · MP4", sub: "94 MB", quality: "1080p", videoUrl: "https://gv/137", audioUrl: "https://gv/140", ext: "mp4", size: 94e6, headers: [["User-Agent", "YtDlpUA"]] },
       { key: "audio|M4A", label: "Audio only · M4A 130k", sub: "4 MB", quality: "audio", videoUrl: "https://gv/140", audioUrl: null, ext: "m4a", size: 4e6, headers: [] } ] }) };
   }
+  if (url.includes("/pl/master")) {
+    return { ok: true, status: 200, text: async () => "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360\n360/index.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080\n1080/index.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=2500000,RESOLUTION=1280x720\nhttps://cdn2.example/720/index.m3u8\n" };
+  }
+  if (url.includes("/pl/") && url.endsWith("index.m3u8")) {
+    return { ok: true, status: 200, text: async () => "#EXTM3U\n#EXT-X-TARGETDURATION:6\n#EXTINF:6,\na.ts\n" };
+  }
   return { ok: true, status: 200 };
 };
-const ctx = { chrome, fetch, AbortController, setTimeout, clearTimeout, navigator: { userAgent: "TestUA" }, console, URL,
+const ctx = { chrome, fetch, AbortController, TextEncoder, crypto: globalThis.crypto, setTimeout, clearTimeout, navigator: { userAgent: "TestUA" }, console, URL,
   importScripts: (...f) => f.forEach((x) => vm.runInContext(fs.readFileSync(path.join(dir, x), "utf8"), ctx)) };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(dir, "background.js"), "utf8"), ctx);
@@ -116,7 +128,16 @@ const tick = () => new Promise((r) => setTimeout(r, 20));
   console.log("Instagram reel via app:", req3.fileName);
   // browser downloads: only new ones, each once, no loop when the app fails
   const now = new Date().toISOString();
-  const dl = async (o) => { await listeners.dl({ id: Math.random(), state: "in_progress", startTime: now, ...o }); await tick(); };
+  // Chrome style: decided before "Save as" (the browser waits for suggest)
+  const dl = async (o) => {
+    const item = { id: Math.random(), state: "in_progress", startTime: now, ...o };
+    await listeners.dl(item); // nothing happens here any more
+    const waits = listeners.det(item, () => suggested.push(item.id));
+    assert.strictEqual(waits, true, "the browser waits for our answer");
+    for (let i = 0; i < 20; i++) await tick();
+    const kept = suggested.includes(item.id), taken = cancelled.includes(item.id);
+    assert(kept !== taken, "answered exactly once: left to the browser or taken by the app");
+  };
   let before = sent.length;
   await dl({ url: "https://example.com/old.pdf", startTime: new Date(Date.now() - 3600e3).toISOString() });
   await dl({ url: "https://example.com/done.pdf", state: "complete" });
@@ -173,6 +194,39 @@ const tick = () => new Promise((r) => setTimeout(r, 20));
     await dl({ url: "https://example.com/while-on.zip" });
     assert.strictEqual(sent.length, before + 1, "on again: back to the app");
     console.log("on / off switch: off leaves everything to the browser");
+  }
+  // a DASH stream (.mpd): offered, its qualities come from the app
+  {
+    listeners.headers({ tabId: 31, url: "https://cdn.example/v/manifest.mpd", statusCode: 200, responseHeaders: [{ name: "Content-Type", value: "application/dash+xml" }] });
+    await tick(); await tick();
+    const items = await new Promise((r) => listeners.msg({ type: "swiftget-get-media", tabId: 31 }, {}, r));
+    const dash = items.find((i) => i.resolve);
+    assert(dash && dash.resolve.endsWith(".mpd"), "DASH stream offered: " + JSON.stringify(items));
+    const n = ytCalls.length;
+    const res = await new Promise((r) => listeners.msg({ type: "swiftget-resolve-video", resolve: dash.resolve }, { tab: { id: 31, url: "https://site.example/watch/1" } }, r));
+    assert(res.items && res.items.length, "its qualities");
+    assert.strictEqual(ytCalls[n].url, dash.resolve);
+    assert.strictEqual(ytCalls[n].referer, "https://site.example/watch/1", "the page goes along as referrer");
+    console.log("DASH stream: offered, qualities from the app with the page as referrer");
+  }
+  // an HLS stream with several qualities: each one by its name (from the
+  // playlist), the lists the player opened itself are not repeated
+  {
+    const hdr = [{ name: "Content-Type", value: "application/vnd.apple.mpegurl" }];
+    listeners.headers({ tabId: 41, url: "https://cdn.example/pl/master", statusCode: 200, responseHeaders: hdr });
+    await tick(); await tick(); await tick();
+    listeners.headers({ tabId: 41, url: "https://cdn.example/pl/1080/index.m3u8", statusCode: 200, responseHeaders: hdr });
+    for (let i = 0; i < 6; i++) await tick();
+    const items = await new Promise((r) => listeners.msg({ type: "swiftget-get-media", tabId: 41 }, {}, r));
+    const labels = items.map((i) => i.label);
+    assert.strictEqual(JSON.stringify(labels), JSON.stringify(["1080p · MP4 · stream", "720p · MP4 · stream", "360p · MP4 · stream"]));
+    assert.strictEqual(items[0].url, "https://cdn.example/pl/1080/index.m3u8");
+    assert.strictEqual(items[1].url, "https://cdn2.example/720/index.m3u8");
+    // the button of that player: the page is nothing the app knows -> its streams
+    const res = await new Promise((r) =>
+      listeners.msg({ type: "swiftget-resolve-video", page: "", src: "", frame: false }, { tab: { id: 41, url: "https://unsupported.example/watch" } }, r));
+    assert(res.items && res.items.length === 3, "the streams instead of an error: " + JSON.stringify(res));
+    console.log("HLS qualities:", labels.join(" | "));
   }
   console.log("background simulation: all checks passed");
 })().catch((e) => { console.error(e); process.exit(1); });

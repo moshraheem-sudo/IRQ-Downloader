@@ -49,6 +49,12 @@ msgstr "Bir oynatma listesinin videolarının hepsini ya da bir kısmını indir
 msgid "Download a .torrent file or a magnet link."
 msgstr "Bir .torrent dosyası ya da magnet bağlantısı indirin."
 
+msgid "Move to queue"
+msgstr "Kuyruğa taşı"
+
+msgid "Delete from queue"
+msgstr "Kuyruktan çıkar"
+
 msgid "{} downloads selected"
 msgstr "{} indirme seçildi"
 
@@ -63,6 +69,9 @@ msgstr "Birlikte aç…"
 
 msgid "Play while downloading"
 msgstr "İnerken oynat"
+
+msgid "Download a part of it…"
+msgstr "Bir kısmını indir…"
 
 msgid "Open folder"
 msgstr "Klasörü aç"
@@ -81,12 +90,6 @@ msgstr "İndirme adresini yenile…"
 
 msgid "Move / Rename…"
 msgstr "Taşı / Yeniden adlandır…"
-
-msgid "Move to queue"
-msgstr "Kuyruğa taşı"
-
-msgid "Delete from queue"
-msgstr "Kuyruktan çıkar"
 
 msgid "Copy address"
 msgstr "Adresi kopyala"
@@ -124,8 +127,8 @@ msgstr "Kategoriyi sil"
 msgid "Properties…"
 msgstr "Özellikler…"
 
-msgid "Ezoo Download"
-msgstr "Ezoo Download"
+msgid "IRQ Downloader"
+msgstr "IRQ Downloader"
 
 msgid "File Name"
 msgstr "Dosya adı"
@@ -180,6 +183,9 @@ msgstr "Site toplayıcıyı çalıştır…"
 
 msgid "Download a playlist…"
 msgstr "Oynatma listesi indir…"
+
+msgid "Download a part of a video…"
+msgstr "Bir videonun bir kısmını indir…"
 
 msgid "Add a torrent / magnet link…"
 msgstr "Torrent / magnet bağlantısı ekle…"
@@ -262,8 +268,8 @@ msgstr "Uyku"
 msgid "Hibernate"
 msgstr "Hazırda beklet"
 
-msgid "Exit Ezoo Download"
-msgstr "Ezoo Download'dan çık"
+msgid "Exit IRQ Downloader"
+msgstr "IRQ Downloader'dan çık"
 
 msgid "Scheduler…"
 msgstr "Zamanlayıcı…"
@@ -346,8 +352,8 @@ msgstr "Görünüm…"
 msgid "Help"
 msgstr "Yardım"
 
-msgid "Add Ezoo Download to my browser…"
-msgstr "Ezoo Download'u tarayıcıma ekle…"
+msgid "Add IRQ Downloader to my browser…"
+msgstr "IRQ Downloader'u tarayıcıma ekle…"
 
 msgid "Tip of the day…"
 msgstr "Günün ipucu…"
@@ -358,8 +364,8 @@ msgstr "Güncellemeleri denetle"
 msgid "Check for updates (video downloader)"
 msgstr "Güncellemeleri denetle (video indirici)"
 
-msgid "About Ezoo Download"
-msgstr "Ezoo Download hakkında"
+msgid "About IRQ Downloader"
+msgstr "IRQ Downloader hakkında"
 
 msgid "Add URL"
 msgstr "URL ekle"
@@ -598,6 +604,9 @@ msgstr "<< Ayrıntıları gizle"
 msgid "Show details >>"
 msgstr "Ayrıntıları göster >>"
 
+msgid "Next to the clock"
+msgstr "Saatin yanına"
+
 msgid "Pause"
 msgstr "Duraklat"
 
@@ -613,8 +622,8 @@ msgstr "No."
 msgid "Info"
 msgstr "Bilgi"
 
-msgid "Hide next to the clock"
-msgstr "Saatin yanına gizle"
+msgid "Drag me"
+msgstr "Sürükle beni"
 
 msgid "Download complete"
 msgstr "İndirme tamamlandı"
@@ -733,11 +742,17 @@ msgstr "Bittiyse göster, bitmediyse sürdür"
 msgid "Remember my choice (Options > Downloads)"
 msgstr "Seçimimi hatırla (Seçenekler > İndirmeler)"
 
+msgid "Delete the downloaded files from the disk too (be careful)"
+msgstr "İndirilen dosyaları diskten de sil (dikkat)"
+
+msgid "Don't show this question again"
+msgstr "Bu soruyu bir daha gösterme"
+
 msgid "All downloads are finished."
 msgstr "Tüm indirmeler bitti."
 
-msgid "Ezoo Download will {} in {} seconds."
-msgstr "Ezoo Download {} – {} saniye içinde."
+msgid "IRQ Downloader will {} in {} seconds."
+msgstr "IRQ Downloader {} – {} saniye içinde."
 
 msgid "Now"
 msgstr "Şimdi"
@@ -784,8 +799,8 @@ msgstr "Cmt"
 msgid "Sun"
 msgstr "Paz"
 
-msgid "Start the queue when Ezoo Download starts"
-msgstr "Ezoo Download açılınca kuyruğu başlat"
+msgid "Start the queue when IRQ Downloader starts"
+msgstr "IRQ Downloader açılınca kuyruğu başlat"
 
 msgid "Stop the queue at"
 msgstr "Kuyruğu şu saatte durdur"
@@ -840,6 +855,9 @@ msgstr "https://example.com/gallery/"
 
 msgid "Start exploring"
 msgstr "Taramayı başlat"
+
+msgid "Some pages make their links only in the browser (with scripts, or as plain text). For them: open the page in the browser, right-click it and choose \"Download all links with IRQ Downloader\": every link you see there is collected."
+msgstr "Bazı sayfalar bağlantılarını yalnızca tarayıcıda oluşturur (betiklerle ya da düz metin olarak). Bunlar için: sayfayı tarayıcıda açın, sağ tıklayın ve \"Download all links with IRQ Downloader\" seçin: orada gördüğünüz her bağlantı toplanır."
 
 msgid "Get"
 msgstr "Al"
@@ -946,8 +964,8 @@ msgstr "Sonraki ipucu"
 msgid "Refresh download address"
 msgstr "İndirme adresini yenile"
 
-msgid "1. Open the web page where you got this file.\n2. Click the download link there again (or start the video).\n3. Ezoo Download takes the new address and continues from where it stopped."
-msgstr "1. Bu dosyayı aldığınız web sayfasını açın.\n2. Oradaki indirme bağlantısına yeniden tıklayın (veya videoyu başlatın).\n3. Ezoo Download yeni adresi alır ve kaldığı yerden devam eder."
+msgid "1. Open the web page where you got this file.\n2. Click the download link there again (or start the video).\n3. IRQ Downloader takes the new address and continues from where it stopped."
+msgstr "1. Bu dosyayı aldığınız web sayfasını açın.\n2. Oradaki indirme bağlantısına yeniden tıklayın (veya videoyu başlatın).\n3. IRQ Downloader yeni adresi alır ve kaldığı yerden devam eder."
 
 msgid "Open the page"
 msgstr "Sayfayı aç"
@@ -970,8 +988,8 @@ msgstr "Beklemeyi bırak"
 msgid "Play"
 msgstr "Oynat"
 
-msgid "Ezoo Download – Options"
-msgstr "Ezoo Download – Seçenekler"
+msgid "IRQ Downloader – Options"
+msgstr "IRQ Downloader – Seçenekler"
 
 msgid "General"
 msgstr "Genel"
@@ -1021,8 +1039,8 @@ msgstr "Gözat…"
 msgid "Picture visibility"
 msgstr "Resim görünürlüğü"
 
-msgid "Launch Ezoo Download on Windows startup"
-msgstr "Ezoo Download'u Windows açılışında başlat"
+msgid "Launch IRQ Downloader on Windows startup"
+msgstr "IRQ Downloader'u Windows açılışında başlat"
 
 msgid "Keep running next to the clock when the window is closed"
 msgstr "Pencere kapatılınca saatin yanında çalışmaya devam et"
@@ -1032,6 +1050,9 @@ msgstr "Panoyu indirme bağlantıları için izle"
 
 msgid "Automatically start downloading links placed in the clipboard"
 msgstr "Panoya konan bağlantıları otomatik indirmeye başla"
+
+msgid "Draw the windows with the graphics card (uses more memory; after a restart)"
+msgstr "Pencereleri ekran kartıyla çiz (daha çok bellek; yeniden başlatınca)"
 
 msgid "Show \"Tip of the day\" at startup"
 msgstr "Başlangıçta \"Günün ipucu\"nu göster"
@@ -1048,8 +1069,8 @@ msgstr "Özellikleri göster"
 msgid "Browser integration"
 msgstr "Tarayıcı entegrasyonu"
 
-msgid "Chrome and Edge: load the \"extension\" folder in chrome://extensions (Developer mode > Load unpacked). Downloads, videos and the right click menu then go to Ezoo Download."
-msgstr "Chrome ve Edge: \"extension\" klasörünü chrome://extensions içinde yükleyin (Geliştirici modu > Paketlenmemiş öğe yükle). İndirmeler, videolar ve sağ tık menüsü Ezoo Download'a gider."
+msgid "Chrome and Edge: load the \"extension\" folder in chrome://extensions (Developer mode > Load unpacked). Downloads, videos and the right click menu then go to IRQ Downloader."
+msgstr "Chrome ve Edge: \"extension\" klasörünü chrome://extensions içinde yükleyin (Geliştirici modu > Paketlenmemiş öğe yükle). İndirmeler, videolar ve sağ tık menüsü IRQ Downloader'a gider."
 
 msgid "Hold this key to let the browser download by itself"
 msgstr "Tarayıcının kendisi indirsin diye bu tuşu basılı tut"
@@ -1066,8 +1087,8 @@ msgstr "Shift"
 msgid "None"
 msgstr "Yok"
 
-msgid "Hold this key to force Ezoo Download to take a link"
-msgstr "Ezoo Download'un bağlantıyı almasını zorlamak için bu tuşu basılı tut"
+msgid "Hold this key to force IRQ Downloader to take a link"
+msgstr "IRQ Downloader'un bağlantıyı almasını zorlamak için bu tuşu basılı tut"
 
 msgid "Browser extension port"
 msgstr "Tarayıcı eklentisi bağlantı noktası"
@@ -1125,6 +1146,15 @@ msgstr "Tarayıcıdan gelen indirmeler için \"Dosya bilgileri\" penceresini gö
 
 msgid "Start downloading immediately while showing \"Download File Info\""
 msgstr "\"Dosya bilgileri\" gösterilirken hemen indirmeye başla"
+
+msgid "Ask before removing downloads from the list"
+msgstr "İndirmeleri listeden kaldırmadan önce sor"
+
+msgid "Quality of MP3 files"
+msgstr "MP3 dosyalarının kalitesi"
+
+msgid "Download the subtitles of videos too, in these languages:"
+msgstr "Videoların altyazılarını da bu dillerde indir:"
 
 msgid "Show the download progress window"
 msgstr "İndirme ilerleme penceresini göster"
@@ -1279,8 +1309,8 @@ msgstr ".wav dosyaları. Boş = o olay için ses yok."
 msgid "Turn the speed limiter on"
 msgstr "Hız sınırlayıcıyı aç"
 
-msgid "Always turn on the speed limiter when Ezoo Download starts"
-msgstr "Ezoo Download açılınca hız sınırlayıcıyı her zaman aç"
+msgid "Always turn on the speed limiter when IRQ Downloader starts"
+msgstr "IRQ Downloader açılınca hız sınırlayıcıyı her zaman aç"
 
 msgid "Every download can also have its own limit: its progress window > Speed Limiter tab."
 msgstr "Her indirmenin kendi sınırı da olabilir: ilerleme penceresi > Hız sınırlayıcı sekmesi."
@@ -1381,14 +1411,17 @@ msgstr "Dosyaları numaralandır"
 msgid "Not installed on this computer"
 msgstr "Bu bilgisayarda yüklü değil"
 
-msgid "Add Ezoo Download to your browser"
-msgstr "Ezoo Download'u tarayıcınıza ekleyin"
+msgid "Add IRQ Downloader to your browser"
+msgstr "IRQ Downloader'u tarayıcınıza ekleyin"
 
 msgid "Click your browser:"
 msgstr "Tarayıcınıza tıklayın:"
 
 msgid "Almost done:"
 msgstr "Neredeyse bitti:"
+
+msgid "Repair the add-in"
+msgstr "Eklentiyi onar"
 
 msgid "Copy folder path"
 msgstr "Klasör yolunu kopyala"
@@ -1399,17 +1432,95 @@ msgstr "Sürüm {}"
 msgid "Coded by Ahmed Ezzat"
 msgstr "Kodlayan: Ahmed Ezzat"
 
-msgid "Like Ezoo Download? You can support its development:"
-msgstr "Ezoo Download'u beğendiniz mi? Geliştirilmesine destek olabilirsiniz:"
+msgid "Official download page (GitHub)"
+msgstr "Resmî indirme sayfası (GitHub)"
+
+msgid "Download IRQ Downloader only from its official page."
+msgstr "IRQ Downloader'ı yalnızca resmî sayfasından indirin."
+
+msgid "© Ezoo Tech – All rights reserved"
+msgstr "© Ezoo Tech – Tüm hakları saklıdır"
+
+msgid "Like IRQ Downloader? You can support its development:"
+msgstr "IRQ Downloader'u beğendiniz mi? Geliştirilmesine destek olabilirsiniz:"
 
 msgid "Support with PayPal"
 msgstr "PayPal ile destek ol"
 
-msgid "What's new in Ezoo Download"
-msgstr "Ezoo Download’da yenilikler"
+msgid "Support with InstaPay"
+msgstr "InstaPay ile destekle"
 
-msgid "Ezoo Download is free and has no ads. If it helps you and you would like to support its development, you can send a gift with PayPal. Thank you!"
-msgstr "Ezoo Download ücretsizdir ve reklam içermez. İşinize yarıyorsa ve gelişimini desteklemek isterseniz PayPal ile bağış gönderebilirsiniz. Teşekkürler!"
+msgid "InstaPay: a7medek@instapay (scan the code with your bank's app)"
+msgstr "InstaPay: a7medek@instapay (kodu bankanızın uygulamasıyla tarayın)"
+
+msgid "Download a part of a video"
+msgstr "Bir videonun bir kısmını indir"
+
+msgid "Paste the address of the video (its page, or a link to the video or stream):"
+msgstr "Videonun adresini yapıştırın (sayfası ya da videonun veya yayının bağlantısı):"
+
+msgid "Looking…"
+msgstr "Bakılıyor…"
+
+msgid "Get the video"
+msgstr "Videoyu getir"
+
+msgid "Quality:"
+msgstr "Kalite:"
+
+msgid "From:"
+msgstr "Başlangıç:"
+
+msgid "To:"
+msgstr "Bitiş:"
+
+msgid "Length:"
+msgstr "Süre:"
+
+msgid "Cut:"
+msgstr "Kesim:"
+
+msgid "Quick cut (recommended)"
+msgstr "Hızlı kesim (önerilen)"
+
+msgid "Exact cut"
+msgstr "Tam kesim"
+
+msgid "Quick cut"
+msgstr "Hızlı kesim"
+
+msgid "Takes seconds and keeps the quality exactly as it is (nothing is made again). A video can only start on a whole picture, so the part may start a second or two before the time you chose."
+msgstr "Saniyeler sürer ve kaliteyi olduğu gibi korur (hiçbir şey yeniden yapılmaz). Bir video yalnızca tam bir karede başlayabilir; bu yüzden parça seçtiğiniz zamandan bir iki saniye önce başlayabilir."
+
+msgid "Starts and ends on the very second you chose. The picture of the part is made again, so it takes longer (about as long as the part plays, or less) and works the processor. Sound alone is always cut exactly."
+msgstr "Tam seçtiğiniz saniyede başlar ve biter. Parçanın görüntüsü yeniden yapılır; bu yüzden daha uzun sürer (yaklaşık parçanın süresi kadar ya da daha az) ve işlemciyi çalıştırır. Yalnızca ses her zaman tam kesilir."
+
+msgid "Preparing the preview…"
+msgstr "Önizleme hazırlanıyor…"
+
+msgid "Preview the part"
+msgstr "Parçayı önizle"
+
+msgid "Download the part"
+msgstr "Parçayı indir"
+
+msgid "Support IRQ Downloader"
+msgstr "IRQ Downloader'ı destekle"
+
+msgid "Did IRQ Downloader save you time?"
+msgstr "IRQ Downloader size zaman kazandırdı mı?"
+
+msgid "It is free and has no ads. If you like, you can support its development with any amount."
+msgstr "Ücretsizdir ve reklam içermez. İsterseniz gelişimini istediğiniz miktarla destekleyebilirsiniz."
+
+msgid "Not now"
+msgstr "Şimdi değil"
+
+msgid "What's new in IRQ Downloader"
+msgstr "IRQ Downloader’da yenilikler"
+
+msgid "IRQ Downloader is free and has no ads. If it helps you and you would like to support its development, you can send a gift with PayPal or InstaPay. Thank you!"
+msgstr "IRQ Downloader ücretsiz ve reklamsızdır. İşinize yarıyorsa ve gelişimini desteklemek isterseniz PayPal veya InstaPay ile bağış gönderebilirsiniz. Teşekkürler!"
 
 msgid "Hide"
 msgstr "Gizle"

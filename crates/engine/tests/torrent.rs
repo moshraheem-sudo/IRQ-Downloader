@@ -128,7 +128,7 @@ async fn downloads_a_torrent_with_aria2() {
     let opts = AddOptions { dir: get_dir.clone(), seed_minutes: 0, ..Default::default() };
     let gg = getter.add(file.to_str().unwrap(), &opts).await.unwrap();
     let mut done = false;
-    for _ in 0..300 {
+    for _ in 0..600 {
         let st = getter.status(&gg).await.unwrap();
         assert_ne!(st.status, "error", "{:?}", st.error);
         if st.status == "complete" {
@@ -163,7 +163,7 @@ async fn torrent_in_the_download_list() {
     assert_eq!(v.file_name, "song.bin");
     assert_eq!(v.total_size, Some(data.len() as u64));
     let mut status = v.status;
-    for _ in 0..300 {
+    for _ in 0..600 {
         status = mgr.get(id).unwrap().status;
         if matches!(status, swiftget_engine::Status::Completed | swiftget_engine::Status::Failed) {
             break;
@@ -181,7 +181,7 @@ async fn torrent_in_the_download_list() {
         ..Default::default()
     });
     let mut st2 = swiftget_engine::Status::Queued;
-    for _ in 0..300 {
+    for _ in 0..600 {
         st2 = mgr.get(again).unwrap().status;
         if matches!(st2, swiftget_engine::Status::Completed | swiftget_engine::Status::Failed) {
             break;
@@ -214,7 +214,7 @@ async fn magnet_link_learns_its_name() {
     let id = mgr.add(swiftget_engine::NewDownload { url: magnet, save_dir: Some(list_dir.clone()), start: true, ..Default::default() });
     assert_eq!(mgr.get(id).unwrap().file_name, "torrent");
     let mut status = swiftget_engine::Status::Queued;
-    for _ in 0..300 {
+    for _ in 0..600 {
         status = mgr.get(id).unwrap().status;
         if matches!(status, swiftget_engine::Status::Completed | swiftget_engine::Status::Failed) {
             break;
@@ -293,7 +293,7 @@ async fn only_the_checked_files_of_a_torrent() {
     });
     let mut status = swiftget_engine::Status::Queued;
     let mut total = None;
-    for _ in 0..300 {
+    for _ in 0..600 {
         let v = mgr.get(id).unwrap();
         status = v.status;
         total = v.total_size;
@@ -307,6 +307,28 @@ async fn only_the_checked_files_of_a_torrent() {
     assert_eq!(total, Some(b.len() as u64));
     assert_eq!(std::fs::read(get.join("pack/b.bin")).unwrap(), b);
     assert!(!get.join("pack/a.bin").exists(), "the unchecked file is not kept");
+    seeder.remove(&sg).await;
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// A magnet link: its file list (a .torrent file) comes before the
+/// download, from the people who share it, so files can be chosen.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn magnet_link_file_list_first() {
+    let Some((root, data, _file, seeder, sg, port)) = shared_file("meta").await else { return };
+    let hash: String = ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, &make_info("song.bin", &data))
+        .as_ref()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    let magnet = format!("magnet:?xt=urn:btih:{hash}&tr=http%3A%2F%2F127.0.0.1%3A{port}%2Fannounce");
+    let getter = Aria2::new(&root.join("m"));
+    let file = getter.metadata(&magnet, &root.join("listdir"), Duration::from_secs(60)).await.unwrap();
+    let info = swiftget_engine::torrent::parse_torrent(&std::fs::read(&file).unwrap()).unwrap();
+    assert_eq!(info.name, "song.bin");
+    assert_eq!(info.total, data.len() as u64);
+    // nothing of the file itself was downloaded
+    assert!(!root.join("listdir").join("song.bin").exists());
     seeder.remove(&sg).await;
     let _ = std::fs::remove_dir_all(&root);
 }

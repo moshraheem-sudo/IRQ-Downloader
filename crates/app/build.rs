@@ -12,26 +12,26 @@ fn main() {
     slint_build::compile_with_config("ui/app.slint", config).expect("Slint UI failed to compile");
 
     // Icon, full version information and a standard manifest for
-    // EzooDownload.exe. Antivirus programs trust a program more when it says
+    // IRQDownloader.exe. Antivirus programs trust a program more when it says
     // clearly who made it, what it is and that it runs without admin rights.
     #[cfg(windows)]
     {
         let version = env!("CARGO_PKG_VERSION");
         let mut res = winresource::WindowsResource::new();
         res.set_icon("icon.ico");
-        res.set("ProductName", "Ezoo Download");
-        res.set("FileDescription", "Ezoo Download");
-        res.set("CompanyName", "Ezoo");
-        res.set("LegalCopyright", "Copyright (C) 2026 Ahmed Ezzat");
-        res.set("OriginalFilename", "EzooDownload.exe");
-        res.set("InternalName", "EzooDownload");
+        res.set("ProductName", "IRQ Downloader");
+        res.set("FileDescription", "IRQ Downloader");
+        res.set("CompanyName", "IRQ");
+        res.set("LegalCopyright", "IRQ Downloader based on Ezoo Download by Ahmed Ezzat");
+        res.set("OriginalFilename", "IRQDownloader.exe");
+        res.set("InternalName", "IRQDownloader");
         res.set("ProductVersion", version);
         res.set("FileVersion", version);
         res.set_manifest(
             r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity type="win32" name="Ezoo.EzooDownload" version="1.0.0.0" processorArchitecture="*"/>
-  <description>Ezoo Download - download manager</description>
+  <assemblyIdentity type="win32" name="IRQ.Downloader" version="1.0.0.0" processorArchitecture="*"/>
+  <description>IRQ Downloader - based on Ezoo Download by Ahmed Ezzat</description>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>

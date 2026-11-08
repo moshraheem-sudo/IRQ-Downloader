@@ -1,4 +1,4 @@
-const DEFAULTS = { port: 9614, intercept: true, minSizeKB: 0, bubbleSize: "normal", bubbleScale: null };
+const DEFAULTS = { port: 9624, intercept: true, minSizeKB: 0, bubbleSize: "normal", bubbleScale: null };
 const OLD_SIZES = { small: 85, normal: 100, large: 125 };
 
 function saved() {

@@ -1,4 +1,4 @@
-//! New versions of Ezoo Download itself.
+//! New versions of IRQ Downloader itself.
 //!
 //! Every release on GitHub carries two files:
 //!
@@ -15,6 +15,7 @@
 //! a release (or a file) that was not made with that key is never installed,
 //! even if someone could publish files on the repository.
 
+use crate::http::SendOrdered;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
@@ -120,7 +121,7 @@ pub fn parse(text: &str) -> anyhow::Result<Release> {
 pub fn parse_signed(text: &str) -> anyhow::Result<Release> {
     let r = parse(text)?;
     if !signature_ok(&r, UPDATE_PUBLIC_KEY) {
-        anyhow::bail!("the update is not signed by Ezoo Download, so it is not installed");
+        anyhow::bail!("the update is not signed by IRQ Downloader, so it is not installed");
     }
     Ok(r)
 }
@@ -131,7 +132,7 @@ pub async fn check(client: &reqwest::Client) -> anyhow::Result<Option<Release>> 
         .get(version_url())
         .header(reqwest::header::USER_AGENT, crate::config::DEFAULT_USER_AGENT)
         .header(reqwest::header::CACHE_CONTROL, "no-cache")
-        .send()
+        .send_ordered()
         .await?
         .error_for_status()?
         .text()
@@ -196,7 +197,7 @@ pub async fn download_with_progress(
     let mut resp = client
         .get(r.setup_url())
         .header(reqwest::header::USER_AGENT, crate::config::DEFAULT_USER_AGENT)
-        .send()
+        .send_ordered()
         .await?
         .error_for_status()?;
     use std::io::Write;
