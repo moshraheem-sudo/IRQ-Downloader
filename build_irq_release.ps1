@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$version = (Select-String -Path (Join-Path $root 'Cargo.toml') -Pattern '^version = "([^"]+)"').Matches[0].Groups[1].Value
 $vcvars = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat'
 if (-not (Test-Path $vcvars)) { throw "Visual Studio C++ Build Tools were not found: $vcvars" }
 Push-Location $root
@@ -10,18 +11,29 @@ try {
 
     $exe = Join-Path $root 'target\release\IRQDownloader.exe'
     if (-not (Test-Path $exe)) { throw "Release executable not found: $exe" }
-    $dist = Join-Path $root 'dist\IRQ Downloader'
-    New-Item -ItemType Directory -Force -Path $dist | Out-Null
-    Copy-Item $exe (Join-Path $dist 'IRQDownloader.exe') -Force
-    New-Item -ItemType Directory -Force -Path (Join-Path $dist 'tools'), (Join-Path $dist 'extension'), (Join-Path $dist 'extension-firefox') | Out-Null
-    Copy-Item (Join-Path $root 'tools\*') (Join-Path $dist 'tools') -Recurse -Force
-    Copy-Item (Join-Path $root 'extension\*') (Join-Path $dist 'extension') -Recurse -Force
-    Copy-Item (Join-Path $root 'extension\*') (Join-Path $dist 'extension-firefox') -Recurse -Force
-    Copy-Item (Join-Path $root 'extension\manifest.firefox.json') (Join-Path $dist 'extension-firefox\manifest.json') -Force
-    Copy-Item (Join-Path $root 'LICENSE') (Join-Path $dist 'LICENSE') -Force
-    Copy-Item (Join-Path $root 'THIRD-PARTY-NOTICES.txt') (Join-Path $dist 'THIRD-PARTY-NOTICES.txt') -Force
-    Copy-Item (Join-Path $root 'README.md') (Join-Path $dist 'README.md') -Force
-    Write-Host "Built: $dist\IRQDownloader.exe" -ForegroundColor Green
+    $stage = Join-Path $root "build-cache\stage-$version"
+    $portable = Join-Path $root 'dist\IRQ Downloader'
+    New-Item -ItemType Directory -Force -Path $stage, (Join-Path $stage 'tools'), (Join-Path $stage 'extension'), (Join-Path $stage 'extension-firefox') | Out-Null
+    Copy-Item $exe (Join-Path $stage 'IRQDownloader.exe') -Force
+    Copy-Item (Join-Path $root 'tools\*') (Join-Path $stage 'tools') -Recurse -Force
+    Copy-Item (Join-Path $root 'extension\*') (Join-Path $stage 'extension') -Recurse -Force
+    Copy-Item (Join-Path $root 'extension\*') (Join-Path $stage 'extension-firefox') -Recurse -Force
+    Copy-Item (Join-Path $root 'extension\manifest.firefox.json') (Join-Path $stage 'extension-firefox\manifest.json') -Force
+    Copy-Item (Join-Path $root 'LICENSE') (Join-Path $stage 'LICENSE') -Force
+    Copy-Item (Join-Path $root 'THIRD-PARTY-NOTICES.txt') (Join-Path $stage 'THIRD-PARTY-NOTICES.txt') -Force
+    Copy-Item (Join-Path $root 'README.md') (Join-Path $stage 'README.md') -Force
+    Write-Host "Prepared installer files: $stage" -ForegroundColor Green
+
+    # Keep an already-running portable copy intact; the installer staging above
+    # is independent and can still be built while that copy is open.
+    try {
+        New-Item -ItemType Directory -Force -Path $portable | Out-Null
+        Copy-Item (Join-Path $stage 'IRQDownloader.exe') (Join-Path $portable 'IRQDownloader.exe') -Force
+        Copy-Item (Join-Path $stage '*') $portable -Recurse -Force
+        Write-Host "Portable build: $portable\IRQDownloader.exe" -ForegroundColor Green
+    } catch {
+        Write-Warning "Could not replace the portable copy (it may be open). The installer staging remains ready: $stage"
+    }
 
     $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
     if (-not $iscc) {
@@ -30,7 +42,7 @@ try {
     }
     if ($iscc) {
         Write-Host 'Building the signed-by-GitHub-digest installer...' -ForegroundColor Cyan
-        & $iscc "/DStage=$dist" "/DMyAppVersion=$((Select-String -Path (Join-Path $root 'Cargo.toml') -Pattern '^version = "([^"]+)"').Matches[0].Groups[1].Value)" (Join-Path $root 'installer\irq_download.iss')
+        & $iscc "/DStage=$stage" "/DMyAppVersion=$version" (Join-Path $root 'installer\irq_download.iss')
         if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
         Write-Host "Installer: $root\dist\IRQDownloader-Setup.exe" -ForegroundColor Green
     } else {
