@@ -381,10 +381,6 @@ pub struct Settings {
     pub gpu_drawing: bool,
     /// the word about AV1 videos (sound without picture in older players) was shown
     pub av1_tip_shown: bool,
-    /// downloads that finished well (for the word about supporting the program)
-    pub finished_count: u64,
-    /// when that word was shown last (seconds since 1970; 0 = never)
-    pub support_asked_at: u64,
     /// the key the browser add-in sends with every request (made at the
     /// first start; encrypted on the disk)
     #[serde(with = "crate::secret::string")]
@@ -490,8 +486,6 @@ impl Default for Settings {
             progress_details: false,
             gpu_drawing: false,
             av1_tip_shown: false,
-            finished_count: 0,
-            support_asked_at: 0,
             api_token: String::new(),
             api_port: 0,
         }

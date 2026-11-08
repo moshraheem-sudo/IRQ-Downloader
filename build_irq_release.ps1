@@ -22,6 +22,7 @@ try {
     Copy-Item (Join-Path $root 'LICENSE') (Join-Path $stage 'LICENSE') -Force
     Copy-Item (Join-Path $root 'THIRD-PARTY-NOTICES.txt') (Join-Path $stage 'THIRD-PARTY-NOTICES.txt') -Force
     Copy-Item (Join-Path $root 'README.md') (Join-Path $stage 'README.md') -Force
+    Copy-Item (Join-Path $root 'DISTRIBUTION_AR.md') (Join-Path $stage 'DISTRIBUTION_AR.md') -Force
     Write-Host "Prepared installer files: $stage" -ForegroundColor Green
 
     # Keep an already-running portable copy intact; the installer staging above
@@ -35,13 +36,20 @@ try {
         Write-Warning "Could not replace the portable copy (it may be open). The installer staging remains ready: $stage"
     }
 
+    $distRoot = Join-Path $root 'dist'
+    New-Item -ItemType Directory -Force -Path $distRoot | Out-Null
+    $portableZip = Join-Path $distRoot "IRQDownloader-Portable-$version.zip"
+    Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $portableZip -CompressionLevel Optimal -Force
+    Write-Host "Portable package: $portableZip" -ForegroundColor Green
+
     $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
     if (-not $iscc) {
-        $candidate = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
-        if (Test-Path $candidate) { $iscc = $candidate }
+        foreach ($candidate in @('C:\Program Files\Inno Setup 7\ISCC.exe', 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe')) {
+            if (Test-Path $candidate) { $iscc = $candidate; break }
+        }
     }
     if ($iscc) {
-        Write-Host 'Building the signed-by-GitHub-digest installer...' -ForegroundColor Cyan
+        Write-Host 'Building the IRQ Downloader installer...' -ForegroundColor Cyan
         & $iscc "/DStage=$stage" "/DMyAppVersion=$version" (Join-Path $root 'installer\irq_download.iss')
         if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
         Write-Host "Installer: $root\dist\IRQDownloader-Setup.exe" -ForegroundColor Green

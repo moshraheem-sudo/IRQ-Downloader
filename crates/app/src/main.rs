@@ -637,7 +637,6 @@ fn run() -> anyhow::Result<()> {
             // until Start is pressed
             let early = early_download(&ui.ctx);
             let completed = ui.ctx.mgr.take_completed();
-            extra::finished_well(&ui, completed.len());
             extra::av1_tip(&ui, &completed);
             let finished: Vec<u64> = completed.into_iter().filter(|id| Some(*id) != early).collect();
             if let Some(&last) = finished.last() {

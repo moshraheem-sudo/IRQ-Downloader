@@ -378,7 +378,7 @@ thread_local! {
 }
 
 /// After an update: what is new, in its own window (right to left in
-/// Arabic), with a word about supporting the free program.
+/// Arabic), listing only changes in the program.
 pub(crate) fn whats_new(ui: &Ui) {
     let Ok(d) = WhatsNewDialog::new() else { return };
     crate::set_theme_of(d.global::<Theme>(), &crate::Look::of(&ui.ctx.mgr.settings()));
@@ -386,11 +386,6 @@ pub(crate) fn whats_new(ui: &Ui) {
     d.set_heading(tf("IRQ Downloader was updated to version {} by itself.", &[&env!("CARGO_PKG_VERSION")]).into());
     let items: Vec<SharedString> = WHATS_NEW.iter().map(|l| t(l).into()).collect();
     d.set_items(ModelRc::new(VecModel::from(items)));
-    d.on_open_link(|u| {
-        if u.starts_with("https://") {
-            let _ = open::that_detached(u.as_str());
-        }
-    });
     let w = d.as_weak();
     d.on_close_window(move || {
         if let Some(d) = w.upgrade() {
@@ -430,74 +425,6 @@ pub(crate) fn av1_tip(ui: &Ui, done: &[u64]) {
             let _ = open::that_detached("ms-windows-store://search/?query=AV1%20Video%20Extension");
         }
     });
-}
-
-// ---------------------------------------------------------------- support
-
-/// Finished downloads before the word about supporting the program shows.
-const SUPPORT_AFTER: u64 = 50;
-/// And then not again for a month.
-const SUPPORT_EVERY: u64 = 30 * 24 * 3600;
-
-/// Shown now? (`count` downloads finished, last shown at `asked`, 0 = never)
-fn support_due(count: u64, asked: u64, now: u64) -> bool {
-    count >= SUPPORT_AFTER && (asked == 0 || now.saturating_sub(asked) >= SUPPORT_EVERY)
-}
-
-thread_local! {
-    static SUPPORT_WIN: std::cell::RefCell<Option<SupportDialog>> = const { std::cell::RefCell::new(None) };
-}
-
-/// `n` downloads just finished well: counted, and once it is time the small
-/// word about supporting the program shows (a few seconds later, when no
-/// other message is open and the main window is on the screen).
-pub(crate) fn finished_well(ui: &Ui, n: usize) {
-    if n == 0 {
-        return;
-    }
-    let mut s = ui.ctx.mgr.settings();
-    s.finished_count = s.finished_count.saturating_add(n as u64);
-    let due = support_due(s.finished_count, s.support_asked_at, crate::api::now_secs());
-    let _ = ui.ctx.mgr.set_settings(s);
-    if due {
-        let ui = ui.clone();
-        slint::Timer::single_shot(std::time::Duration::from_secs(3), move || ask_support_when_free(ui, 0));
-    }
-}
-
-fn ask_support_when_free(ui: Ui, tries: u32) {
-    let s = ui.ctx.mgr.settings();
-    if !support_due(s.finished_count, s.support_asked_at, crate::api::now_secs()) || SUPPORT_WIN.with(|x| x.borrow().is_some()) {
-        return;
-    }
-    let main_shown = ui.ctx.main.upgrade().map(|m| m.window().is_visible() && !m.window().is_minimized()).unwrap_or(false);
-    if modal_open() || !main_shown {
-        // not over another message, not while the program is next to the
-        // clock: the next finished download tries again
-        if tries < 40 && main_shown {
-            slint::Timer::single_shot(std::time::Duration::from_secs(3), move || ask_support_when_free(ui, tries + 1));
-        }
-        return;
-    }
-    let Ok(d) = SupportDialog::new() else { return };
-    crate::set_theme_of(d.global::<Theme>(), &crate::Look::of(&s));
-    let mut s = s;
-    s.support_asked_at = crate::api::now_secs();
-    let _ = ui.ctx.mgr.set_settings(s);
-    d.on_open_link(|u| {
-        if u.starts_with("https://") {
-            let _ = open::that_detached(u.as_str());
-        }
-    });
-    let w = d.as_weak();
-    d.on_close_window(move || {
-        if let Some(d) = w.upgrade() {
-            let _ = d.hide();
-        }
-        slint::Timer::single_shot(std::time::Duration::from_millis(1), || SUPPORT_WIN.with(|x| *x.borrow_mut() = None));
-    });
-    open_window!(d);
-    SUPPORT_WIN.with(|x| *x.borrow_mut() = Some(d));
 }
 
 const TIPS: [&str; 14] = [
@@ -875,17 +802,7 @@ pub(crate) fn wire(ui: &Ui) {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_web_address, support_due};
-
-    #[test]
-    fn support_word_after_50_then_once_a_month() {
-        let day = 24 * 3600;
-        let now = 1_800_000_000;
-        assert!(!support_due(49, 0, now));
-        assert!(support_due(50, 0, now));
-        assert!(!support_due(500, now - 29 * day, now), "not again before a month");
-        assert!(support_due(500, now - 30 * day, now));
-    }
+    use super::is_web_address;
 
     #[test]
     fn only_web_pages_are_opened() {
