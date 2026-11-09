@@ -329,6 +329,12 @@ impl SendOrdered for RequestBuilder {
             // another site never gets this site's sign-in
             let prev = resp.url();
             if next.host_str() != prev.host_str() || next.port_or_known_default() != prev.port_or_known_default() {
+                // When redirecting across subdomains or CDNs, set REFERER to previous URL so the CDN accepts it
+                if n.headers().get(reqwest::header::REFERER).is_none() {
+                    if let Ok(ref_val) = reqwest::header::HeaderValue::from_str(prev.as_str()) {
+                        n.headers_mut().insert(reqwest::header::REFERER, ref_val);
+                    }
+                }
                 for h in [reqwest::header::AUTHORIZATION, COOKIE, reqwest::header::PROXY_AUTHORIZATION, reqwest::header::WWW_AUTHENTICATE] {
                     n.headers_mut().remove(h);
                 }
@@ -382,6 +388,24 @@ pub fn request(client: &Client, url: &str, h: &RequestHeaders, default_ua: &str)
     for (k, v) in &h.extra {
         rb = rb.header(k.as_str(), v.as_str());
     }
+    // Add standard modern browser headers if not already set, so CDNs and WAFs don't block with HTTP 403
+    let has = |name: &str| h.extra.iter().any(|(k, _)| k.eq_ignore_ascii_case(name));
+    if !has("Accept-Language") {
+        rb = rb.header("Accept-Language", "en-US,en;q=0.9,ar;q=0.8");
+    }
+    if !has("Sec-Ch-Ua") {
+        rb = rb.header("Sec-Ch-Ua", "\"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"");
+        rb = rb.header("Sec-Ch-Ua-Mobile", "?0");
+        rb = rb.header("Sec-Ch-Ua-Platform", "\"Windows\"");
+    }
+    if !has("Sec-Fetch-Dest") {
+        let is_doc = url.to_ascii_lowercase().contains("pdf") || url.to_ascii_lowercase().contains("doc");
+        rb = rb.header("Sec-Fetch-Dest", if is_doc { "document" } else { "empty" });
+        rb = rb.header("Sec-Fetch-Mode", "navigate");
+        rb = rb.header("Sec-Fetch-Site", if h.referer.is_some() { "same-origin" } else { "none" });
+        rb = rb.header("Sec-Fetch-User", "?1");
+        rb = rb.header("Upgrade-Insecure-Requests", "1");
+    }
     if let Some((user, pass)) = h.auth.as_ref().filter(|(u, _)| !u.is_empty()) {
         rb = rb.basic_auth(user, Some(pass));
     }
@@ -401,7 +425,7 @@ fn looks_like_hls(url: &str, content_type: Option<&str>) -> bool {
 /// Ways to ask again when a server refuses the request as the browser sent
 /// it: some sites refuse a byte range, or cookies / a referrer that belong to
 /// the browser's own session. (with range?, headers)
-fn fallbacks(h: &RequestHeaders) -> Vec<(bool, RequestHeaders)> {
+fn fallbacks(url: &str, h: &RequestHeaders) -> Vec<(bool, RequestHeaders)> {
     let mut out = vec![(true, h.clone()), (false, h.clone())];
     let has = |s: &Option<String>| s.as_deref().map(|v| !v.is_empty()).unwrap_or(false);
     if has(&h.cookies) {
@@ -418,6 +442,19 @@ fn fallbacks(h: &RequestHeaders) -> Vec<(bool, RequestHeaders)> {
         out.push((true, n.clone()));
         out.push((false, n));
     }
+    if h.referer.is_none() {
+        if let Ok(parsed) = url::Url::parse(url) {
+            let mut origin = format!("{}://{}", parsed.scheme(), parsed.host_str().unwrap_or(""));
+            if let Some(port) = parsed.port() {
+                origin.push_str(&format!(":{port}"));
+            }
+            origin.push('/');
+            let mut n = h.clone();
+            n.referer = Some(origin);
+            out.push((false, n.clone()));
+            out.push((true, n));
+        }
+    }
     out
 }
 
@@ -431,7 +468,7 @@ pub async fn probe(
 ) -> anyhow::Result<ProbeResult> {
     let mut first_refusal: Option<u16> = None;
     let mut found = None;
-    for (with_range, h) in fallbacks(headers) {
+    for (with_range, h) in fallbacks(url, headers) {
         let mut rb = request(client, url, &h, default_ua);
         if with_range {
             // from the start to the end, like a browser asking to resume:

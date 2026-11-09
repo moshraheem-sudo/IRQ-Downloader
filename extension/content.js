@@ -131,8 +131,13 @@
     /pinterest\.[a-z.]+\/pin\//i,
     /snapchat\.com\/(spotlight|add)\//i,
     /linkedin\.com\/(posts|feed\/update)\//i,
+    // OK.ru clip pages are video pages, even when their player only exposes
+    // short vkuser.net byte-range requests to the browser.
+    /(^|\.)ok\.ru\/(?:video|clip)\//i,
+    /(^|\.)odnoklassniki\.ru\/(?:video|clip)\//i,
   ];
   const isVideoPage = (u) => VIDEO_PAGE.some((r) => r.test(u));
+  const isOkClipPage = (u) => /(^|\.)ok\.ru\/clip\//i.test(u || "");
   // Facebook feeds: the post a video is in is also a link the app can read
   // (the feed's own address - facebook.com/ - is not)
   const FB_POST = [
@@ -159,10 +164,25 @@
     }
   }
 
+  // OK.ru's /clip/ links are player pages; yt-dlp needs the underlying
+  // /video/<movie id> page. Read that id from the player mounted by OK.ru.
+  function pageLink(u) {
+    if (!isOkClipPage(u)) return cleanLink(u);
+    try {
+      const target = new URL(u);
+      if (target.hostname !== location.hostname || target.pathname !== location.pathname) return "";
+    } catch {
+      return "";
+    }
+    const player = document.querySelector('[data-module="OKVideo"][data-movie-id], [data-movie-id]');
+    const movieId = player && player.getAttribute("data-movie-id");
+    return movieId && /^\d+$/.test(movieId) ? `https://ok.ru/video/${movieId}` : "";
+  }
+
   // In feeds (Facebook, Instagram, X...) the page shows many videos: look for
   // the post / reel link around the video being watched.
   function linkFor(video) {
-    if (isVideoPage(location.href) || isPostLink(location.href)) return cleanLink(location.href);
+    if (isVideoPage(location.href) || isPostLink(location.href)) return pageLink(location.href);
     // a Facebook feed / home page is no video: nothing rather than the feed
     return ownLink(video) || (onFacebook ? "" : location.href);
   }
@@ -174,7 +194,10 @@
     for (let depth = 0; el && depth < 25; depth++) {
       const links = el.querySelectorAll ? el.querySelectorAll("a[href]") : [];
       for (const a of links) {
-        if (isVideoPage(a.href)) return cleanLink(a.href);
+        if (isVideoPage(a.href)) {
+          const page = pageLink(a.href);
+          if (page) return page;
+        }
         if (!post && isPostLink(a.href)) post = cleanLink(a.href);
       }
       // the end of this post (Facebook marks its posts, it has no <article>)
@@ -184,7 +207,7 @@
     }
     if (post) return post;
     // an embedded player: the frame's own address is the video
-    if (!TOP && isVideoPage(location.href)) return location.href;
+    if (!TOP && isVideoPage(location.href)) return pageLink(location.href);
     return "";
   }
 
@@ -197,7 +220,7 @@
     // in a frame (an embedded player): its own address when it is a video
     // page (YouTube / Vimeo embeds), otherwise the page around it (the
     // add-in knows that one)
-    const page = TOP ? linkFor(v) : isVideoPage(location.href) ? location.href : "";
+    const page = TOP ? linkFor(v) : isVideoPage(location.href) ? pageLink(location.href) : "";
     if (page !== lastPage || (!TOP && !lastPage)) {
       if (!TOP && lastPage === "frame:" + page) return;
       lastPage = TOP ? page : "frame:" + page;
@@ -424,7 +447,7 @@
       el("style", { text: STYLE }),
       el(
         "div",
-        { class: "wrap " + look },
+        { class: "wrap " + look, id: "wrap" },
         el(
           "div",
           { class: "btn", id: "main" },
@@ -437,12 +460,12 @@
     );
     const b = { host, root, video, open: false, own: null, loading: false, dx: null, dy: null, help: false };
     const grab = root.getElementById("grab");
-    // drag: move it anywhere on the video; a short press is a click
+    // drag: move it anywhere on the video (or screen for document panel); a short press is a click
     let down = null;
     grab.addEventListener("mousedown", (e) => {
       if (e.button !== 0) return;
       const hr = host.getBoundingClientRect();
-      down = { x: e.clientX, y: e.clientY, ox: e.clientX - hr.left, oy: e.clientY - hr.top, moved: false };
+      down = { x: e.clientX, y: e.clientY, ox: e.clientX - hr.left, oy: e.clientY - hr.top, isPage: !video, moved: false };
       e.preventDefault();
     });
     addEventListener("mousemove", (e) => {
@@ -450,9 +473,14 @@
       if (!down.moved && Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) < 5) return;
       down.moved = true;
       root.getElementById("main").classList.add("drag");
-      const r = video.getBoundingClientRect();
-      b.dx = e.clientX - down.ox - r.left;
-      b.dy = e.clientY - down.oy - r.top;
+      if (down.isPage) {
+        b.dx = e.clientX - down.ox;
+        b.dy = e.clientY - down.oy;
+      } else {
+        const r = video ? video.getBoundingClientRect() : { left: 0, top: 0 };
+        b.dx = e.clientX - down.ox - r.left;
+        b.dy = e.clientY - down.oy - r.top;
+      }
       placeOne(b);
     });
     addEventListener("mouseup", () => {
@@ -472,7 +500,7 @@
       host.remove();
     });
     layer().appendChild(host);
-    bubbles.set(video, b);
+    if (video) bubbles.set(video, b);
     renderOne(b);
     placeOne(b);
     return b;
@@ -483,6 +511,7 @@
 
   function itemsOf(b) {
     if (b.own) return b.own;
+    if (!b.video) return items;
     return isMain(b.video) ? items : [];
   }
 
@@ -498,9 +527,9 @@
         type: "swiftget-resolve-video",
         resolve: stream || "",
         // in a frame that is only a player: the add-in uses the page around it
-        page: ownLink(b.video) || (directSrc(b.video) || !TOP || inFeed() ? "" : location.href),
+        page: ownLink(b.video) || (directSrc(b.video) || !TOP || inFeed() || isOkClipPage(location.href) ? "" : location.href),
         feed: TOP && inFeed(),
-        src: directSrc(b.video),
+        src: isOkClipPage(location.href) ? "" : directSrc(b.video),
         frame: !TOP,
       },
       (res) => {
@@ -565,7 +594,17 @@
   // under it "12:34 · 2,500 kbps · 245 MB".
   function describe(m) {
     const y = m.yt;
-    if (!y) return { main: m.label, tag: "", codec: "", sub: m.sub || "" };
+    if (!y) {
+      if (m.isDocument || m.ext === "pdf" || /pdf/i.test(m.type || "")) {
+        return {
+          main: m.label || `${(m.ext || "PDF").toUpperCase()} Document`,
+          tag: (m.ext || "PDF").toUpperCase(),
+          codec: "",
+          sub: m.size ? fmtSize(m.size) : (m.sub && m.sub !== m.url ? m.sub : "PDF Document · Ready to download"),
+        };
+      }
+      return { main: m.label, tag: "", codec: "", sub: m.sub || "" };
+    }
     const audio = y.quality === "audio" || y.quality === "mp3" || /^audio\|/.test(y.key || "");
     const ext = (y.ext || "mp4").toUpperCase();
     const q = audio ? "" : y.quality || "";
@@ -621,7 +660,10 @@
     const list = itemsOf(b);
     const usable = list.filter((i) => !i.disabled);
     const busy = b.loading || (!usable.length && list.some((i) => i.disabled && /Getting/.test(i.label)));
-    b.root.getElementById("label").textContent = usable.length > 1 ? `Download this video (${usable.length})` : "Download this video";
+    const isDoc = !b.video || (usable.length > 0 && usable.every((i) => i.isDocument || i.ext === "pdf" || /pdf/i.test(i.type || "")));
+    b.root.getElementById("label").textContent = isDoc
+      ? (usable.length > 1 ? `Download PDF (${usable.length})` : "Download PDF")
+      : (usable.length > 1 ? `Download this video (${usable.length})` : "Download this video");
     b.root.getElementById("spin").hidden = !busy;
     b.root.querySelector("svg").style.display = busy ? "none" : "";
     b.root.getElementById("main").classList.toggle("open", b.open);
@@ -824,6 +866,28 @@
   }
 
   function placeOne(b) {
+    if (!b.video) {
+      b.host.style.display = b.dismissed ? "none" : "block";
+      if (b.dismissed) return;
+      if (b.host.parentNode !== layer()) layer().appendChild(b.host);
+      const mainRect = b.root.getElementById("main").getBoundingClientRect();
+      const w = mainRect.width || 120;
+      const h = mainRect.height || 26;
+      let left = b.dx == null ? innerWidth - w - 24 : b.dx;
+      let top = b.dy == null ? 24 : b.dy;
+      left = Math.max(4, Math.min(left, innerWidth - w - 4));
+      top = Math.max(4, Math.min(top, innerHeight - h - 4));
+      b.host.style.left = `${left}px`;
+      b.host.style.top = `${top}px`;
+      const wrap = b.root.querySelector(".wrap");
+      if (wrap) {
+        const listW = 330 * zoom;
+        const listH = Math.min(380, (b.root.getElementById("list") || {}).scrollHeight || 380) * zoom;
+        wrap.classList.toggle("toright", left + w - listW < 4);
+        wrap.classList.toggle("up", top + h + listH > innerHeight - 4 && top - listH > 4);
+      }
+      return;
+    }
     const fs = document.fullscreenElement || document.webkitFullscreenElement;
     const r = b.video.getBoundingClientRect();
     // closed with its X: it stays closed (also after full screen, a new size…)
@@ -867,7 +931,7 @@
     });
     // bubbles of videos that went away
     for (const [v, b] of bubbles) {
-      if (!v.isConnected) {
+      if (v && typeof v === "object" && v.nodeType && !v.isConnected) {
         b.host.remove();
         bubbles.delete(v);
       }
@@ -883,6 +947,20 @@
       }
       if (!b.dismissed) placeOne(b);
     }
+
+    // Page-level document bubble (e.g. ScienceDirect, open access journals, PDF articles)
+    const docItems = items.filter((i) => i.isDocument || i.ext === "pdf" || /pdf|doc/i.test(i.type || ""));
+    let docBubble = bubbles.get("doc_page");
+    if (docItems.length > 0 && vids.length === 0) {
+      if (!docBubble) {
+        docBubble = makeBubble(null);
+        bubbles.set("doc_page", docBubble);
+      }
+      if (!docBubble.dismissed) placeOne(docBubble);
+    } else if (docBubble && (vids.length > 0 || docItems.length === 0)) {
+      docBubble.host.remove();
+      bubbles.delete("doc_page");
+    }
   }
 
   function flashOne(b, text, isError) {
@@ -897,9 +975,16 @@
   function download(b, m) {
     // a stream whose qualities are not known yet: ask the app for them
     if (m.resolve) return lookUp(b, m.resolve);
-    const fileName = `${cleanTitle()}.${m.ext || "mp4"}`;
+    const fileName = m.fileName || `${cleanTitle()}.${m.ext || "mp4"}`;
     chrome.runtime.sendMessage(
-      { type: "swiftget-download", item: m, title: document.title, fileName, referrer: location.href },
+      {
+        type: "swiftget-download",
+        item: m,
+        title: m.title || document.title,
+        fileName,
+        referrer: location.href,
+        cookies: document.cookie,
+      },
       (res) => {
         if (chrome.runtime.lastError || !res || !res.ok) notRunning(b, () => download(b, m));
         else flashOne(b, "Sent to IRQ Downloader ✔", false);
@@ -907,15 +992,112 @@
     );
   }
 
+  function findPageDocuments() {
+    const docs = [];
+    const seen = new Set();
+    const addDoc = (rawUrl, label, source, ext) => {
+      if (!rawUrl || typeof rawUrl !== "string") return;
+      let url = "";
+      try {
+        url = new URL(rawUrl, location.href).toString();
+      } catch {
+        return;
+      }
+      if (!/^https?:/i.test(url)) return;
+      if (seen.has(url)) return;
+      seen.add(url);
+
+      const fileExt = (ext || url.split("?")[0].split("#")[0].split(".").pop() || "pdf").toLowerCase().slice(0, 5);
+      const docExt = ["pdf", "epub", "djvu", "doc", "docx"].includes(fileExt) ? fileExt : "pdf";
+      docs.push({
+        url,
+        label: label || `${docExt.toUpperCase()} Document`,
+        sub: url,
+        ext: docExt,
+        isDocument: true,
+        source: source || "page",
+        referrer: location.href,
+      });
+    };
+
+    // 1. Scholarly and academic metadata (ScienceDirect, arXiv, PubMed, IEEE, Springer, etc.)
+    const metaPdf = document.querySelector(
+      'meta[name="citation_pdf_url" i], meta[name="citation_download_pdf_url" i], meta[name="dc.identifier" i][scheme="URI"], meta[property="og:pdf" i]'
+    );
+    if (metaPdf && metaPdf.content) {
+      const titleMeta = document.querySelector('meta[name="citation_title" i]');
+      const title = titleMeta && titleMeta.content ? titleMeta.content.trim() : cleanTitle();
+      addDoc(metaPdf.content, `${title} · PDF`, "citation_meta", "pdf");
+    }
+
+    const linkPdf = document.querySelector('link[rel="alternate" i][type="application/pdf" i]');
+    if (linkPdf && linkPdf.href) {
+      addDoc(linkPdf.href, `${cleanTitle()} · PDF`, "link_alternate", "pdf");
+    }
+
+    // 2. ScienceDirect specific buttons and links
+    if (/(^|\.)sciencedirect\.com$/i.test(location.hostname)) {
+      const sdBtn = document.querySelector('a[href*="/pdfft"], a[href*="/pdf"], a.link-button[data-article-id], a.PdfLink');
+      if (sdBtn && sdBtn.href) {
+        const articleTitle = (document.querySelector(".title-text") || {}).innerText || cleanTitle();
+        addDoc(sdBtn.href, `${articleTitle} · PDF`, "sciencedirect", "pdf");
+      }
+    }
+
+    // 3. Embedded PDF viewers (PDF.js, embed, object, iframe)
+    for (const em of document.querySelectorAll('embed[type="application/pdf" i], object[type="application/pdf" i]')) {
+      const src = em.src || em.data;
+      if (src) addDoc(src, `${cleanTitle()} · PDF`, "embed", "pdf");
+    }
+    for (const ifr of document.querySelectorAll('iframe[src*=".pdf"], iframe[src*="viewer.html?file="]')) {
+      try {
+        const u = new URL(ifr.src, location.href);
+        const fileParam = u.searchParams.get("file");
+        if (fileParam) addDoc(fileParam, `${cleanTitle()} · PDF`, "pdfjs", "pdf");
+        else if (/\.pdf($|[?#])/i.test(u.pathname)) addDoc(ifr.src, `${cleanTitle()} · PDF`, "iframe", "pdf");
+      } catch (_) {}
+    }
+
+    // 4. Anchor tags on page that explicitly lead to PDF or document downloads
+    const anchors = document.querySelectorAll(
+      'a[href*="/pdfft"], a[href*="/pdf?"], a[href$="/pdf"], a[type="application/pdf" i], a[download$=".pdf" i]'
+    );
+    for (const a of anchors) {
+      if (docs.length >= 10) break;
+      const text = (a.innerText || a.title || a.getAttribute("aria-label") || "").trim();
+      addDoc(a.href, text ? `${text.slice(0, 80)} · PDF` : `${cleanTitle()} · PDF`, "anchor", "pdf");
+    }
+
+    return docs;
+  }
+
   function update(newItems) {
     if (!TOP) return; // frames look up their own videos
-    items = newItems || [];
+    let incoming = Array.isArray(newItems) ? newItems.slice() : [];
+
+    // Detect real PDF and document files on this page (ScienceDirect, open access, arXiv, etc.)
+    const docs = findPageDocuments();
+    for (const d of docs) {
+      if (!incoming.some((i) => i.url === d.url)) {
+        incoming.push(d);
+      }
+    }
+
+    items = incoming;
     if (!items.length) {
       // new page / new video: forget the bubbles and "hidden"
       for (const b of bubbles.values()) b.host.remove();
       bubbles.clear();
       return;
     }
+
+    // Share discovered documents with background so the toolbar popup can also show them
+    if (docs.length) {
+      chrome.runtime.sendMessage({ type: "swiftget-page-documents", items: docs }, () => {
+        if (chrome.runtime.lastError) {}
+      });
+    }
+
     if (!panelAllowed()) return;
     place();
     for (const b of bubbles.values()) if (!b.own && !b.loading) renderOne(b);
@@ -961,7 +1143,26 @@
     if ((r.skipAddresses || []).some((a) => wildcard(a, href))) return false;
     const last = decodeURIComponent(u.pathname.split("/").pop() || "");
     const dot = last.lastIndexOf(".");
-    const ext = dot > 0 ? last.slice(dot + 1).toLowerCase() : "";
+    let ext = dot > 0 ? last.slice(dot + 1).toLowerCase() : "";
+
+    // Support open-access & journal signed/dynamic document links
+    // e.g. ScienceDirect /pdfft?md5=... or /pdf? or query param file=*.pdf or download attribute
+    const a = e.composedPath ? e.composedPath().find((n) => n && n.tagName === "A") : null;
+    if (!ext || VIEWED.test(ext)) {
+      if (
+        /\/pdfft(\?|$)/i.test(href) ||
+        /\/pdf(\?|$)/i.test(href) ||
+        /[?&](pid|file|filename)=[^&]*\.pdf/i.test(href) ||
+        (a && (
+          (a.getAttribute("type") || "").toLowerCase() === "application/pdf" ||
+          /\.pdf$/i.test(a.getAttribute("download") || "") ||
+          /\b(download|view|full\s*text)\s*pdf\b/i.test(a.innerText || a.title || "")
+        ))
+      ) {
+        ext = "pdf";
+      }
+    }
+
     if (!ext || VIEWED.test(ext)) return false;
     if (ext === "pdf" && !(r.exts || []).some((x) => wildcard(x, ext))) return false;
     // a .torrent file opens in the program's torrent window
@@ -978,18 +1179,27 @@
       if (!wantedLink(e, href)) return;
       e.preventDefault();
       e.stopPropagation();
-      chrome.runtime.sendMessage({ type: "swiftget-link", url: href }, (res) => {
-        // not taken (the app is closed, the user chose the browser): the browser's way
-        if (chrome.runtime.lastError || !res || !res.ok) {
-          const tmp = document.createElement("a");
-          tmp.href = href;
-          if (a.hasAttribute("download")) tmp.setAttribute("download", a.getAttribute("download") || "");
-          tmp.dataset.ezooPass = "1";
-          document.documentElement.appendChild(tmp);
-          tmp.click();
-          tmp.remove();
+      chrome.runtime.sendMessage(
+        {
+          type: "swiftget-link",
+          url: href,
+          referrer: location.href,
+          title: document.title,
+          cookies: document.cookie,
+        },
+        (res) => {
+          // not taken (the app is closed, the user chose the browser): the browser's way
+          if (chrome.runtime.lastError || !res || !res.ok) {
+            const tmp = document.createElement("a");
+            tmp.href = href;
+            if (a.hasAttribute("download")) tmp.setAttribute("download", a.getAttribute("download") || "");
+            tmp.dataset.ezooPass = "1";
+            document.documentElement.appendChild(tmp);
+            tmp.click();
+            tmp.remove();
+          }
         }
-      });
+      );
     },
     true
   );
@@ -1094,6 +1304,18 @@
       if (!itemsOf(b).length) lookUp(b);
       else renderOne(b);
       placeOne(b);
+    }
+    if (msg.type === "swiftget-link-error") {
+      const host = document.createElement("div");
+      host.style.cssText = "all:initial;position:fixed;z-index:2147483647;top:18px;right:18px;max-width:min(520px,calc(100vw - 36px));";
+      const root = host.attachShadow({ mode: "closed" });
+      const note = document.createElement("div");
+      note.textContent = `تعذّر تجهيز فيديو YouTube: ${msg.error || "خطأ غير معروف"}`;
+      note.style.cssText = "box-sizing:border-box;padding:14px 18px;border:1px solid #ff5773;border-radius:10px;background:#19151d;color:#fff;font:14px/1.5 Segoe UI,sans-serif;box-shadow:0 8px 30px #0008;";
+      root.appendChild(note);
+      layer().appendChild(host);
+      setTimeout(() => host.remove(), 9000);
+      return false;
     }
     return false;
   });

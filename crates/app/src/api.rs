@@ -49,6 +49,10 @@ struct BrowserQuery {
 #[serde(rename_all = "camelCase")]
 pub struct AddRequest {
     pub url: String,
+    /// The browser's original URL before redirecting to a signed file URL.
+    /// Used to reconnect a browser-assisted retry to the failed download.
+    #[serde(default)]
+    pub also_url: Option<String>,
     #[serde(default)]
     pub referrer: Option<String>,
     #[serde(default)]
@@ -676,9 +680,10 @@ fn can_fetch(add: &AddRequest) -> bool {
     let Ok(rt) = tokio::runtime::Builder::new_current_thread().enable_all().build() else { return true };
     let Ok(client) = swiftget_engine::http::build_client() else { return true };
     let url = add.url.clone();
+    let ua = add.user_agent.as_deref().unwrap_or(swiftget_engine::config::DEFAULT_USER_AGENT).to_string();
     rt.block_on(async move {
-        let look = swiftget_engine::http::probe(&client, &url, &headers, swiftget_engine::config::DEFAULT_USER_AGENT);
-        match tokio::time::timeout(std::time::Duration::from_millis(2500), look).await {
+        let look = swiftget_engine::http::probe(&client, &url, &headers, &ua);
+        match tokio::time::timeout(std::time::Duration::from_millis(3500), look).await {
             // a sign-in page instead of the file
             Ok(Ok(p)) => !p.is_web_page(),
             Ok(Err(e)) => match swiftget_engine::http::http_status_of(&e) {

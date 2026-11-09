@@ -312,11 +312,12 @@ async function appAlive() {
 
 async function cookieHeader(url) {
   try {
-    const cookies = await chrome.cookies.getAll({ url });
-    return cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-  } catch {
-    return "";
-  }
+    if (url && /^https?:/i.test(url)) {
+      const urlCookies = await chrome.cookies.getAll({ url });
+      return urlCookies.map((c) => `${c.name}=${c.value}`).join("; ");
+    }
+  } catch (_) {}
+  return "";
 }
 
 /** The site's cookies for the app, only used if the site asks for a login. */
@@ -339,6 +340,15 @@ async function cookieList(url) {
 function isYoutube(url) {
   try {
     return /(^|\.)youtube\.com$|^youtu\.be$/i.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isOkClipPage(url) {
+  try {
+    const u = new URL(url);
+    return /(^|\.)ok\.ru$/i.test(u.hostname) && /^\/clip\//i.test(u.pathname);
   } catch {
     return false;
   }
@@ -381,15 +391,20 @@ function rememberRequest(d) {
   }
 }
 try {
-  // Chrome / Edge / Brave need "extraHeaders" to show Cookie and Referer
-  const extra = chrome.webRequest.OnSendHeadersOptions && chrome.webRequest.OnSendHeadersOptions.EXTRA_HEADERS;
+  // In Chromium, "extraHeaders" is required to receive Cookie and Referer in requestHeaders
   chrome.webRequest.onSendHeaders.addListener(
     rememberRequest,
-    { urls: ["<all_urls>"], types: ["main_frame", "sub_frame", "media", "object", "other", "xmlhttprequest"] },
-    extra ? ["requestHeaders", extra] : ["requestHeaders"]
+    { urls: ["<all_urls>"] },
+    ["requestHeaders", "extraHeaders"]
   );
 } catch (_) {
-  /* no request headers here: the cookies and the page still go along */
+  try {
+    chrome.webRequest.onSendHeaders.addListener(
+      rememberRequest,
+      { urls: ["<all_urls>"] },
+      ["requestHeaders"]
+    );
+  } catch (_) {}
 }
 
 /** What the browser sent for `url` (or the first of `urls` it knows). */
@@ -409,14 +424,44 @@ async function sendToApp({ url, audioUrl, referrer, fileName, headers, sourcePag
   const sentCookie = sent && sent.find((h) => /^cookie$/i.test(h.name));
   const sentReferer = sent && sent.find((h) => /^referer$/i.test(h.name));
   const sentUa = sent && sent.find((h) => /^user-agent$/i.test(h.name));
+
+  if (!referrer && sentReferer) referrer = sentReferer.value;
+  if (!referrer) {
+    try {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (activeTab && activeTab.url && /^https?:/i.test(activeTab.url)) referrer = activeTab.url;
+    } catch (_) {}
+  }
+
   const passOn = sent ? sent.filter((h) => !/^(cookie|referer|user-agent)$/i.test(h.name)).map((h) => [h.name, h.value]) : null;
+  let finalHeaders = headers || (passOn && passOn.length ? passOn : null);
+  if (!finalHeaders || !finalHeaders.length) {
+    finalHeaders = [
+      ["Accept", /pdf/i.test(url) || (fileName && /\.pdf$/i.test(fileName)) ? "application/pdf,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" : "*/*"],
+      ["Accept-Language", navigator.language || "en-US,en;q=0.9,ar;q=0.8"],
+      ["Sec-Ch-Ua", '"Chromium";v="131", "Not_A Brand";v="24"'],
+      ["Sec-Ch-Ua-Mobile", "?0"],
+      ["Sec-Ch-Ua-Platform", '"Windows"'],
+      ["Sec-Fetch-Dest", /pdf/i.test(url) ? "document" : "empty"],
+      ["Sec-Fetch-Mode", "navigate"],
+      ["Sec-Fetch-Site", referrer ? "same-origin" : "none"],
+      ["Sec-Fetch-User", "?1"],
+      ["Upgrade-Insecure-Requests", "1"],
+    ];
+  }
+
   const body = {
     url,
+    // The browser may turn an article/download page into a signed PDF URL.
+    // Keep the original address too so a 403 retry can rejoin its existing
+    // IRQ download instead of creating a second, failing entry.
+    alsoUrl: alsoUrl || null,
     audioUrl: audioUrl || null,
-    headers: headers || (passOn && passOn.length ? passOn : null),
+    headers: finalHeaders,
     sourcePage: sourcePage || null,
     sourceKey: sourceKey || null,
-    referrer: referrer || (sentReferer && sentReferer.value) || null,
+    referrer: referrer || null,
+    // Use only cookies valid for the file host, as the browser does.
     cookies: (sentCookie && sentCookie.value) || (await cookieHeader(url)),
     userAgent: (sentUa && sentUa.value) || navigator.userAgent,
     fileName: fileName || null,
@@ -608,13 +653,35 @@ async function appCanFetch(url, item) {
   try {
     const sent = browserRequest(url, item.url);
     const pick = (n) => sent && sent.find((h) => h.name.toLowerCase() === n);
+    let referrer = item.referrer || (pick("referer") && pick("referer").value) || null;
+    if (!referrer) {
+      try {
+        const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (activeTab && activeTab.url && /^https?:/i.test(activeTab.url)) referrer = activeTab.url;
+      } catch (_) {}
+    }
     const passOn = sent ? sent.filter((h) => !/^(cookie|referer|user-agent|range)$/i.test(h.name)).map((h) => [h.name, h.value]) : null;
+    let finalHeaders = passOn && passOn.length ? passOn : null;
+    if (!finalHeaders || !finalHeaders.length) {
+      finalHeaders = [
+        ["Accept", /pdf/i.test(url) ? "application/pdf,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" : "*/*"],
+        ["Accept-Language", navigator.language || "en-US,en;q=0.9,ar;q=0.8"],
+        ["Sec-Ch-Ua", '"Chromium";v="131", "Not_A Brand";v="24"'],
+        ["Sec-Ch-Ua-Mobile", "?0"],
+        ["Sec-Ch-Ua-Platform", '"Windows"'],
+        ["Sec-Fetch-Dest", /pdf/i.test(url) ? "document" : "empty"],
+        ["Sec-Fetch-Mode", "navigate"],
+        ["Sec-Fetch-Site", referrer ? "same-origin" : "none"],
+        ["Sec-Fetch-User", "?1"],
+        ["Upgrade-Insecure-Requests", "1"],
+      ];
+    }
     const body = {
       url,
-      referrer: item.referrer || (pick("referer") && pick("referer").value) || null,
+      referrer,
       cookies: (pick("cookie") && pick("cookie").value) || (await cookieHeader(url)),
       userAgent: (pick("user-agent") && pick("user-agent").value) || navigator.userAgent,
-      headers: passOn && passOn.length ? passOn : null,
+      headers: finalHeaders,
     };
     const r = await fetchWithTimeout(
       apiUrl(port, "/check"),
@@ -991,14 +1058,35 @@ chrome.webRequest.onHeadersReceived.addListener(
     const isHls = HLS_TYPE.test(type) || /\.m3u8(\?|$)/i.test(url);
     // DASH: a list of the parts of a video in several qualities (.mpd)
     const isDash = DASH_TYPE.test(type) || /\.mpd(\?|$)/i.test(url);
+    const isDoc = /application\/(pdf|epub\+zip|vnd\.ms-|msword|vnd\.openxmlformats)/i.test(type) || /\.pdf(\?|$)/i.test(url);
     const isMedia = MEDIA_TYPE.test(type) && !type.includes("mp2t"); // skip HLS chunks
+
+    if (isDoc) {
+      let size = 0;
+      if (h["content-length"]) size = Number(h["content-length"]);
+      if (size === 0 || size > 5000) {
+        const rawName = decodeURIComponent(url.split("/").pop() || "document").split("?")[0];
+        addMedia(d.tabId, {
+          url,
+          label: `${rawName.slice(0, 70)} · PDF`,
+          type: "PDF document",
+          size,
+          ext: "pdf",
+          isDocument: true,
+        });
+        return;
+      }
+    }
+
     if (!isHls && !isDash && !isMedia) return;
     if (isDash) {
       addMedia(d.tabId, { url, type: "DASH stream", size: 0, ext: "mp4", dash: true });
       return;
     }
-    // byte-range pieces of a bigger stream can't be saved as a file
-    if (/[?&](range|bytestart)=/i.test(url)) return;
+    // byte-range pieces of a bigger stream can't be saved as a file. OK.ru's
+    // vkuser.net CDN calls these `bytes`; keep them out of the generic file
+    // list so they cannot be mistaken for a complete, playable video.
+    if (/[?&](range|bytestart|bytes)=/i.test(url)) return;
 
     let size = 0;
     const cr = /\/(\d+)\s*$/.exec(h["content-range"] || "");
@@ -1078,6 +1166,60 @@ async function downloadVideo(option, pageTitle, pageUrl, clip) {
     sourceKey: option.key,
     clip,
   });
+}
+
+// A YouTube watch URL is a page, not a media file. Resolve it through the
+// bundled yt-dlp extractor, then give the app a real stream URL and its
+// renewal key. Other links continue through the normal file-download path.
+async function downloadYoutubePage(url, tabId) {
+  const videoId = videoIdOf(url);
+  if (!videoId) throw new Error("This link is not a YouTube video");
+  let title = "";
+  let options = [];
+
+  // Reuse a stream the browser already loaded for this exact video. This
+  // avoids another DNS lookup and works when Chrome can reach YouTube through
+  // its own secure DNS while the Windows resolver is temporarily failing.
+  if (tabId != null) {
+    const tab = await chrome.tabs.get(tabId).catch(() => null);
+    if (tab && videoIdOf(tab.url) === videoId) {
+      title = tab.title || "";
+      const { yt } = await readTab(tabId);
+      if (yt && yt.videoId === videoId) {
+        if (yt.resolved && yt.resolved.options && yt.resolved.options.length) {
+          title = yt.resolved.title || title;
+          options = yt.resolved.options;
+        } else {
+          options = buildOptions(yt.streams, appConfig && appConfig.mp3Kbps);
+        }
+      }
+    }
+  }
+
+  if (!options.length) {
+    // Use the video's own cookies even when the link was clicked from a
+    // search results page or another site.
+    const result = await askApp(url, url);
+    if (!result.resolved || !result.resolved.options || !result.resolved.options.length) {
+      throw new Error(result.resolveError || "Could not find a downloadable YouTube stream");
+    }
+    title = result.resolved.title || title;
+    options = result.resolved.options;
+  }
+  // The extractor orders video options from the highest available quality.
+  // Prefer a complete video; use audio only for audio-only videos.
+  const option = options.find((o) => o.quality !== "audio" && o.videoUrl) || options.find((o) => o.videoUrl);
+  if (!option) throw new Error("YouTube did not provide a usable stream");
+  title = title || "YouTube video";
+  await downloadVideo({ ...option, title, source: url }, title, url, null);
+}
+
+function showLinkError(tab, error) {
+  if (!tab || tab.id == null) return;
+  chrome.tabs.sendMessage(tab.id, {
+    type: "swiftget-link-error",
+    error: String((error && error.message) || error || "Could not resolve this video"),
+  }).catch(() => {});
 }
 
 async function sendPlaylist(url) {
@@ -1195,7 +1337,7 @@ async function resolveOneVideo(msg, tab) {
   // a player in a frame (Dailymotion, news sites...): what was found for the
   // whole page (its qualities, its streams) is what this player plays
   if (msg.frame && tab) {
-    if (!msg.page && !isYoutube(tab.url)) {
+    if (!msg.page && !isYoutube(tab.url) && !isOkClipPage(tab.url)) {
       await resolvePage(tab.id, tab.url).catch(() => {});
       // it may have been started already (the player was seen): wait for it
       for (let i = 0; i < 180; i++) {
@@ -1218,7 +1360,7 @@ async function resolveOneVideo(msg, tab) {
   if (msg.src && /^https?:/i.test(msg.src)) {
     items.push({ label: "Video file", sub: msg.src, url: msg.src, ext: (/\.(\w{2,4})(\?|$)/.exec(msg.src) || [])[1] || "mp4" });
   }
-  const page = msg.page || (msg.src && !msg.frame ? "" : tab && tab.url);
+  const page = msg.page || (msg.src && !msg.frame ? "" : tab && !isOkClipPage(tab.url) ? tab.url : "");
   let problem = "";
   if (page && /^https?:/i.test(page)) {
     try {
@@ -1263,27 +1405,19 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 function makeMenus() {
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({ id: "swiftget-link", title: "Download with IRQ Downloader", contexts: ["link"] });
-    chrome.contextMenus.create({
-      id: "swiftget-media",
-      title: "Download this media with IRQ Downloader",
-      contexts: ["video", "audio", "image"],
-    });
-    chrome.contextMenus.create({
-      id: "swiftget-video",
-      title: "Download video with IRQ Downloader",
-      contexts: ["page", "video", "frame"],
-    });
-    chrome.contextMenus.create({
-      id: "swiftget-all",
-      title: "Download all links with IRQ Downloader",
-      contexts: ["page", "frame", "link", "image"],
-    });
-    chrome.contextMenus.create({
-      id: "swiftget-selected",
-      title: "Download selected links with IRQ Downloader",
-      contexts: ["selection"],
-    });
+    if (chrome.runtime.lastError) {}
+    const items = [
+      { id: "swiftget-link", title: "Download with IRQ Downloader", contexts: ["link"] },
+      { id: "swiftget-media", title: "Download this media with IRQ Downloader", contexts: ["video", "audio", "image"] },
+      { id: "swiftget-video", title: "Download video with IRQ Downloader", contexts: ["page", "video", "frame"] },
+      { id: "swiftget-all", title: "Download all links with IRQ Downloader", contexts: ["page", "frame", "link", "image"] },
+      { id: "swiftget-selected", title: "Download selected links with IRQ Downloader", contexts: ["selection"] },
+    ];
+    for (const item of items) {
+      chrome.contextMenus.create(item, () => {
+        if (chrome.runtime.lastError) {}
+      });
+    }
   });
 }
 chrome.runtime.onInstalled.addListener(makeMenus);
@@ -1326,6 +1460,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
   const url = info.linkUrl || info.srcUrl;
   if (!url || !/^https?:/i.test(url)) return;
+  if (videoIdOf(url)) {
+    downloadYoutubePage(url, tab && tab.id).catch((e) => {
+      console.warn("IRQ Downloader YouTube link:", e);
+      showLinkError(tab, e);
+    });
+    return;
+  }
   sendToApp({ url, referrer: info.pageUrl }).catch((e) => console.warn("IRQ Downloader:", e));
 });
 
@@ -1365,7 +1506,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (isYoutube(sender.tab.url)) resolveYoutube(sender.tab.id, sender.tab.url);
         // a Facebook feed: its address is no video (the video's own post
         // link is looked up when its button is clicked)
-        else if (!msg.feed) resolvePage(sender.tab.id, msg.page || sender.tab.url, !!msg.frame);
+        else if (!msg.feed) resolvePage(sender.tab.id, msg.page || (isOkClipPage(sender.tab.url) ? "" : sender.tab.url), !!msg.frame);
       });
       return false;
     case "swiftget-resolve-video":
@@ -1386,9 +1527,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         });
       });
       return true;
+    case "swiftget-page-documents": {
+      if (!sender.tab || !sender.tab.id) return false;
+      const tabId = sender.tab.id;
+      const docs = Array.isArray(msg.items) ? msg.items : [];
+      (async () => {
+        for (const doc of docs) {
+          await addMedia(tabId, doc);
+        }
+      })().then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
+      return true;
+    }
     case "swiftget-link":
       // a file link clicked in a page: straight to the app
-      return reply(takeLink(msg.url, sender.tab ? sender.tab.url : ""), sendResponse);
+      const linkRef = msg.referrer || (sender.tab ? sender.tab.url : "");
+      return reply(
+        videoIdOf(msg.url)
+          ? downloadYoutubePage(msg.url, sender.tab ? sender.tab.id : null)
+          : takeLink(msg.url, linkRef),
+        sendResponse
+      );
     case "swiftget-magnet":
       // a torrent's magnet link clicked on a page
       return reply(

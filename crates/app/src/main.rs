@@ -1514,7 +1514,10 @@ fn handle_api(ui: &Ui, event: api::ApiEvent) {
             }
             // a refused download we asked the browser for: it goes on with the
             // browser's own request (headers, sign-in)
-            if let Some(id) = relayed_download(&req.url).filter(|id| ui.ctx.mgr.get(*id).is_some()) {
+            if let Some(id) = relayed_download(&req.url)
+                .or_else(|| req.also_url.as_deref().and_then(relayed_download))
+                .filter(|id| ui.ctx.mgr.get(*id).is_some())
+            {
                 ui.ctx.mgr.set_url(id, &req.url, Some(headers));
                 ui.ctx.mgr.start(id);
                 refresh(ui);
