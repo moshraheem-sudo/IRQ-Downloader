@@ -11,11 +11,11 @@
 //     the keys that skip / force IRQ Downloader, the video panel
 
 // Chrome / Edge / Opera load yt-core.js here; Firefox lists it in its manifest
-if (typeof importScripts === "function") importScripts("yt-core.js");
+if (typeof importScripts === "function") importScripts("yt-core.js", "pdf-detector.js");
 
 // enabled: the on / off switch of the add-in's window (off = the browser
 // keeps its downloads and no buttons are shown on videos)
-const DEFAULTS = { port: 9624, intercept: true, minSizeKB: 0, enabled: true };
+const DEFAULTS = { port: 9624, intercept: true, minSizeKB: 0, enabled: true, smartPdf: true, pdfMode: "standard" };
 
 async function getOpts() {
   return Object.assign({}, DEFAULTS, await chrome.storage.local.get(DEFAULTS));
@@ -416,8 +416,9 @@ function browserRequest(...urls) {
   return null;
 }
 
-async function sendToApp({ url, audioUrl, referrer, fileName, headers, sourcePage, sourceKey, alsoUrl, clip }) {
+async function sendToApp({ url, audioUrl, referrer, fileName, headers, sourcePage, sourceKey, alsoUrl, clip, isDocument }) {
   const { port } = await getOpts();
+  const documentRequest = !!isDocument || /pdf/i.test(url || "") || /\.pdf$/i.test(fileName || "");
   // the browser's own request for this file: its headers go along (the app
   // keeps its own Accept / Range); its cookie is the one the site really got
   const sent = headers ? null : browserRequest(url, alsoUrl);
@@ -433,7 +434,7 @@ async function sendToApp({ url, audioUrl, referrer, fileName, headers, sourcePag
     } catch (_) {}
   }
 
-  const passOn = sent ? sent.filter((h) => !/^(cookie|referer|user-agent)$/i.test(h.name)).map((h) => [h.name, h.value]) : null;
+  const passOn = sent ? sent.filter((h) => !/^(cookie|referer|user-agent)$/i.test(h.name) && !(documentRequest && /^range$/i.test(h.name))).map((h) => [h.name, h.value]) : null;
   let finalHeaders = headers || (passOn && passOn.length ? passOn : null);
   if (!finalHeaders || !finalHeaders.length) {
     finalHeaders = [
@@ -900,8 +901,9 @@ async function itemsForTab(tabId) {
     }
     const q = qualityOf(m.url);
     items.push({
+      ...m,
       label: `${q ? q + " · " : ""}${(m.ext || "").toUpperCase() || m.type}${m.size ? " · " + fmtSize(m.size) : ""}`,
-      sub: m.url,
+      sub: m.sub || m.url,
       url: m.url,
       ext: m.ext,
     });
@@ -1055,10 +1057,42 @@ chrome.webRequest.onHeadersReceived.addListener(
     if (/googlevideo\.com/i.test(url)) return; // YouTube has its own handler below
     const h = headerMap(d.responseHeaders);
     const type = (h["content-type"] || "").toLowerCase();
+    const mimeBase = type.split(";")[0].trim();
     const isHls = HLS_TYPE.test(type) || /\.m3u8(\?|$)/i.test(url);
     // DASH: a list of the parts of a video in several qualities (.mpd)
     const isDash = DASH_TYPE.test(type) || /\.mpd(\?|$)/i.test(url);
-    const isDoc = /application\/(pdf|epub\+zip|vnd\.ms-|msword|vnd\.openxmlformats)/i.test(type) || /\.pdf(\?|$)/i.test(url);
+    const disposition = h["content-disposition"] || "";
+    const maybePdf = /application\/(x-)?pdf/i.test(type) || /filename\*?\s*=\s*[^;]*\.pdf/i.test(disposition) || /\.pdf(?:$|[?#])/i.test(url);
+    const opts = maybePdf ? getOpts() : null;
+    if (opts) opts.then((o) => {
+      if (!o.smartPdf) return;
+      const pdf = globalThis.IRQPdfDetector && globalThis.IRQPdfDetector.classify(d);
+      if (!pdf) return;
+      let fallback = pdf.filename;
+      if (!fallback) {
+        try { fallback = decodeURIComponent(new URL(url).pathname.split("/").pop() || "document.pdf"); }
+        catch (_) { fallback = "document.pdf"; }
+      }
+      addMedia(d.tabId, {
+        ...pdf,
+        label: `${fallback.slice(0, 70)} · PDF`,
+        sub: pdf.originalUrl !== pdf.url ? `From ${pdf.originalUrl}` : url,
+        url: pdf.url,
+        alsoUrl: pdf.originalUrl !== pdf.url ? pdf.originalUrl : undefined,
+        size: pdf.size,
+      });
+      globalThis.IRQPdfDetector.clear(d.requestId);
+    });
+    if (mimeBase === "application/pdf" || mimeBase === "application/x-pdf") {
+      // With the new layer off, retain the former MIME/extension-based behavior.
+      (opts || getOpts()).then((o) => {
+        if (!o.smartPdf && (/\.pdf(?:$|[?#])/i.test(url) || mimeBase === "application/pdf")) {
+          addMedia(d.tabId, { url, label: `${decodeURIComponent(url.split("/").pop() || "document.pdf").split("?")[0].slice(0, 70)} · PDF`, type: "PDF document", size: Number(h["content-length"]) || 0, ext: "pdf", isDocument: true });
+        }
+      });
+      return;
+    }
+    const isDoc = /application\/(pdf|epub\+zip|vnd\.ms-|msword|vnd\.openxmlformats)/i.test(type) || /\.pdf(?:$|[?#])/i.test(url);
     const isMedia = MEDIA_TYPE.test(type) && !type.includes("mp2t"); // skip HLS chunks
 
     if (isDoc) {
@@ -1104,6 +1138,21 @@ chrome.webRequest.onHeadersReceived.addListener(
   { urls: ["<all_urls>"] },
   ["responseHeaders"]
 );
+
+if (globalThis.IRQPdfDetector && chrome.webRequest.onBeforeRedirect) {
+  chrome.webRequest.onBeforeRedirect.addListener(
+    (d) => globalThis.IRQPdfDetector.redirected(d),
+    { urls: ["<all_urls>"] }
+  );
+  chrome.webRequest.onCompleted.addListener(
+    (d) => globalThis.IRQPdfDetector.clear(d.requestId),
+    { urls: ["<all_urls>"] }
+  );
+  chrome.webRequest.onErrorOccurred.addListener(
+    (d) => globalThis.IRQPdfDetector.clear(d.requestId),
+    { urls: ["<all_urls>"] }
+  );
+}
 
 // ---------------------------------------------------------------- 3. YouTube
 
@@ -1471,6 +1520,86 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 // ---------------------------------------------------------------- messages from page/popup
+const openAccessLookups = new Map();
+const debugPdfTabs = new Set();
+
+function normalizedDoi(value) {
+  return String(value || "").replace(/^https?:\/\/(dx\.)?doi\.org\//i, "").trim().toLowerCase();
+}
+
+async function findOpenAccessPdf(tabId, doi, title, page) {
+  const opts = await getOpts();
+  if (!opts.smartPdf || opts.pdfMode !== "open_access" || !tabId) return;
+  const clean = normalizedDoi(doi);
+  if (!/^10\.\d{4,9}\//.test(clean)) return;
+  const key = `${tabId}:${clean}`;
+  if (openAccessLookups.has(key)) return;
+  openAccessLookups.set(key, Date.now());
+  while (openAccessLookups.size > 100) openAccessLookups.delete(openAccessLookups.keys().next().value);
+  try {
+    const api = `https://api.openalex.org/works/${encodeURIComponent(`https://doi.org/${clean}`)}`;
+    const response = await fetchWithTimeout(api, { headers: { Accept: "application/json" } }, 7000);
+    if (!response.ok) {
+      if (response.status === 404) await addMedia(tabId, { label: "OpenAlex has no record for this DOI", sub: clean, type: "PDF lookup", ext: "pdf", isDocument: true, disabled: true, source: "openalex_status" });
+      return;
+    }
+    const work = await response.json();
+    if (normalizedDoi(work.doi) !== clean) return;
+    if (!work.open_access || !work.open_access.is_oa) {
+      await addMedia(tabId, { label: "No open access copy found", sub: `OpenAlex · DOI ${clean}`, type: "PDF lookup", ext: "pdf", isDocument: true, disabled: true, source: "openalex_status" });
+      return;
+    }
+    const location = work.best_oa_location;
+    const pdfUrl = location && location.pdf_url;
+    if (!pdfUrl || !/^https?:/i.test(pdfUrl)) {
+      await addMedia(tabId, { label: "No open access PDF link found", sub: `OpenAlex · DOI ${clean}`, type: "PDF lookup", ext: "pdf", isDocument: true, disabled: true, source: "openalex_status" });
+      return;
+    }
+    const host = new URL(pdfUrl).hostname;
+    await addMedia(tabId, {
+      url: pdfUrl,
+      label: `${(title || work.title || "Open access article").slice(0, 65)} · Open PDF`,
+      sub: `OpenAlex · ${host}${location.license ? ` · ${location.license}` : ""}`,
+      sourcePage: location.landing_page_url || page,
+      referrer: location.landing_page_url || page,
+      source: "openalex_open_access",
+      doi: clean,
+      ext: "pdf",
+      type: "Open access PDF",
+      isDocument: true,
+      size: 0,
+    });
+  } catch (_) {
+    await addMedia(tabId, { label: "OpenAlex lookup unavailable", sub: `Could not check DOI ${clean}`, type: "PDF lookup", ext: "pdf", isDocument: true, disabled: true, source: "openalex_status" }).catch(() => {});
+  }
+}
+
+function debugPdfResponse(source, method, params) {
+  if (method !== "Network.responseReceived" || !debugPdfTabs.has(source.tabId)) return;
+  const response = params && params.response;
+  if (!response || !/application\/(x-)?pdf/i.test(response.mimeType || "")) return;
+  try {
+    const filename = decodeURIComponent(new URL(response.url).pathname.split("/").pop() || "document.pdf");
+    addMedia(source.tabId, {
+      url: response.url,
+      label: `${filename.slice(0, 65)} · PDF`,
+      sub: `Advanced network detection · ${params.type || "Network"} · HTTP ${response.status || "?"}`,
+      type: "PDF document",
+      ext: "pdf",
+      isDocument: true,
+      source: "debugger_network",
+      size: Number(response.headers && (response.headers["content-length"] || response.headers["Content-Length"])) || 0,
+    });
+  } catch (_) {}
+}
+
+if (chrome.debugger && chrome.debugger.onEvent) chrome.debugger.onEvent.addListener(debugPdfResponse);
+if (chrome.debugger && chrome.debugger.onDetach) chrome.debugger.onDetach.addListener((source) => debugPdfTabs.delete(source.tabId));
+if (chrome.debugger && chrome.tabs.onRemoved) chrome.tabs.onRemoved.addListener((tabId) => {
+  if (!debugPdfTabs.has(tabId)) return;
+  debugPdfTabs.delete(tabId);
+  chrome.debugger.detach({ tabId }, () => {});
+});
 
 function reply(promise, sendResponse) {
   promise
@@ -1488,7 +1617,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       // whole videos only: "Download a part" is in the program for now, and
       // no part chosen earlier is ever sent with a download
       if (item.yt) return reply(downloadVideo(item.yt, msg.title, referrer, null), sendResponse);
-      return reply(sendToApp({ url: item.url, referrer, fileName: msg.fileName }), sendResponse);
+      return reply(sendToApp({ url: item.url, referrer, fileName: msg.fileName, alsoUrl: item.alsoUrl, sourcePage: item.sourcePage, isDocument: item.isDocument || item.ext === "pdf" }), sendResponse);
     }
     case "swiftget-get-media":
       itemsForTab(msg.tabId).then(sendResponse);
@@ -1536,6 +1665,35 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await addMedia(tabId, doc);
         }
       })().then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
+      return true;
+    }
+    case "swiftget-open-access":
+      if (!sender.tab || !sender.tab.id) return false;
+      findOpenAccessPdf(sender.tab.id, msg.doi, msg.title, msg.page).then(() => sendResponse({ ok: true }));
+      return true;
+    case "swiftget-pdf-debugger": {
+      const tabId = Number(msg.tabId || (sender.tab && sender.tab.id));
+      if (!tabId || !chrome.debugger) {
+        sendResponse({ ok: false, error: "Advanced detection is available in Chrome/Edge only." });
+        return false;
+      }
+      if (!msg.enabled) {
+        if (debugPdfTabs.has(tabId)) chrome.debugger.detach({ tabId }, () => {});
+        debugPdfTabs.delete(tabId);
+        sendResponse({ ok: true, detached: true });
+        return false;
+      }
+      chrome.debugger.attach({ tabId }, "1.3", () => {
+        if (chrome.runtime.lastError) { sendResponse({ ok: false, error: chrome.runtime.lastError.message }); return; }
+        debugPdfTabs.add(tabId);
+        chrome.debugger.sendCommand({ tabId }, "Network.enable", { maxTotalBufferSize: 1_000_000 }, () => {
+          if (chrome.runtime.lastError) {
+            debugPdfTabs.delete(tabId);
+            chrome.debugger.detach({ tabId }, () => {});
+            sendResponse({ ok: false, error: chrome.runtime.lastError.message });
+          } else sendResponse({ ok: true });
+        });
+      });
       return true;
     }
     case "swiftget-link":

@@ -27,6 +27,20 @@
       <output id="bubbleScaleText">100%</output>
     </label>
   </div>
+  <div class="card" style="margin-top:12px">
+    <label><input type="checkbox" id="smartPdf"> Smart PDF Detection / الكشف الذكي عن ملفات PDF</label>
+    <label>PDF mode / وضع الكشف
+      <select id="pdfMode">
+        <option value="standard">Standard Detection / قياسي</option>
+        <option value="advanced">Advanced Network Detection / متقدم عبر الشبكة</option>
+        <option value="open_access">Open Access Recovery / البحث عن نسخة مفتوحة</option>
+      </select>
+    </label>
+    <button id="pdfDebugger" type="button">Attach advanced detection / تفعيل الكشف المتقدم للعلامة الحالية</button>
+    <button id="pdfDebuggerStop" type="button">Stop advanced detection / إيقاف الكشف المتقدم</button>
+    <small>Advanced detection attaches to this tab only and does not read response bodies. / يتصل الكشف المتقدم بهذه العلامة فقط ولا يقرأ محتوى الاستجابات.</small>
+    <div id="pdfStatus" role="status"></div>
+  </div>
   <div class="saved" id="saved"></div>
   <script src="options.js"></script>
 </body>

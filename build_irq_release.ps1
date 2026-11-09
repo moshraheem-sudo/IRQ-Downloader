@@ -33,7 +33,12 @@ try {
         Copy-Item (Join-Path $stage '*') $portable -Recurse -Force
         Write-Host "Portable build: $portable\IRQDownloader.exe" -ForegroundColor Green
     } catch {
-        Write-Warning "Could not replace the portable copy (it may be open). The installer staging remains ready: $stage"
+        # If the default portable folder is open, keep the current running copy
+        # intact and publish this build in a versioned sibling folder instead.
+        $versionedPortable = Join-Path (Join-Path $root 'dist') "IRQ Downloader $version"
+        New-Item -ItemType Directory -Force -Path $versionedPortable | Out-Null
+        Copy-Item (Join-Path $stage '*') $versionedPortable -Recurse -Force
+        Write-Warning "The default portable folder may be open. Fresh portable build: $versionedPortable"
     }
 
     $distRoot = Join-Path $root 'dist'

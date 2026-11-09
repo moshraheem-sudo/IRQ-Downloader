@@ -15,7 +15,7 @@ const chrome = {
     },
   },
   downloads: { onCreated: on("dl"), onDeterminingFilename: on("det"), cancel: async (id) => { cancelled.push(id); }, erase: async () => {}, download: (o) => browserDl.push(o.url) },
-  webRequest: { onHeadersReceived: on("headers"), onBeforeRequest: on("before") },
+  webRequest: { onHeadersReceived: on("headers"), onBeforeRequest: on("before"), onBeforeRedirect: on("redirect"), onCompleted: on("complete"), onErrorOccurred: on("networkError") },
   tabs: { onUpdated: on("upd"), onRemoved: on("rm"), get: async (id) => ({ id, url: tabUrl }), query: async () => [{ id: 7 }],
           sendMessage: async (id, m) => tabMsgs.push(m) },
   action: { setBadgeBackgroundColor: () => {}, setBadgeText: async () => {} },
@@ -25,6 +25,13 @@ const chrome = {
 };
 const ytCalls = []; const browserDl = []; const cancelled = []; const suggested = []; let appDown = false;
 const fetch = async (url, opts = {}) => {
+  if (String(url).startsWith("https://api.openalex.org/works/")) {
+    return { ok: true, status: 200, json: async () => ({
+      doi: "https://doi.org/10.1234/test-paper", title: "Test OA article",
+      open_access: { is_oa: true },
+      best_oa_location: { pdf_url: "https://repository.example/paper", landing_page_url: "https://repository.example/article", license: "cc-by" },
+    }) };
+  }
   // the program's key and real port, from the program's folder
   if (url === "chrome-extension://sim/token.json") return { ok: true, status: 200, json: async () => ({ token: "k".repeat(64), port: 47000 }) };
   if (url.startsWith("chrome-extension://sim/")) return { ok: true, status: 200, text: async () => "file" };
@@ -208,6 +215,42 @@ const tick = () => new Promise((r) => setTimeout(r, 20));
     assert.strictEqual(ytCalls[n].url, dash.resolve);
     assert.strictEqual(ytCalls[n].referer, "https://site.example/watch/1", "the page goes along as referrer");
     console.log("DASH stream: offered, qualities from the app with the page as referrer");
+  }
+  // Document network detection uses response MIME and retains a redirect source.
+  {
+    listeners.redirect({ requestId: "pdf-1", tabId: 55, url: "https://journal.example/download?id=7", redirectUrl: "https://files.example/object?sig=abc" });
+    listeners.headers({ requestId: "pdf-1", tabId: 55, frameId: 0, url: "https://files.example/object?sig=abc", statusCode: 206,
+      responseHeaders: [{ name: "Content-Type", value: "application/pdf" }, { name: "Content-Range", value: "bytes 0-999/2000" }] });
+    await tick(); await tick(); await tick();
+    const docs = await new Promise((r) => listeners.msg({ type: "swiftget-get-media", tabId: 55 }, {}, r));
+    const pdf = docs.find((x) => x.isDocument);
+    assert(pdf && pdf.url.includes("sig=abc"), "real signed URL retained");
+    assert.strictEqual(pdf.alsoUrl, "https://journal.example/download?id=7", "original source retained for relayed URL support");
+    assert.strictEqual(pdf.source, "network_headers");
+    console.log("PDF network detection: MIME, partial response and redirect tracked");
+  }
+  {
+    localStore.smartPdf = false;
+    listeners.headers({ requestId: "legacy-pdf", tabId: 57, url: "https://files.example/legacy.pdf", statusCode: 200,
+      responseHeaders: [{ name: "Content-Type", value: "application/pdf" }] });
+    await tick(); await tick();
+    const docs = await new Promise((r) => listeners.msg({ type: "swiftget-get-media", tabId: 57 }, {}, r));
+    assert(docs.some((x) => x.url === "https://files.example/legacy.pdf"), "disabling smart mode keeps legacy PDF detection");
+    localStore.smartPdf = true;
+    console.log("Smart PDF off: legacy detection preserved");
+  }
+  {
+    localStore.smartPdf = true;
+    localStore.pdfMode = "open_access";
+    const before = sent.length;
+    await new Promise((r) => listeners.msg({ type: "swiftget-open-access", doi: "10.1234/test-paper", title: "Test OA article", page: "https://journal.example/article" }, { tab: { id: 56, url: "https://journal.example/article" } }, r));
+    await tick(); await tick();
+    const docs = await new Promise((r) => listeners.msg({ type: "swiftget-get-media", tabId: 56 }, {}, r));
+    const oa = docs.find((x) => x.source === "openalex_open_access");
+    assert(oa && oa.url === "https://repository.example/paper", "OpenAlex OA copy available through the normal item list");
+    assert(/cc-by/.test(oa.sub) && /repository\.example/.test(oa.sub), "show repository and license");
+    assert.strictEqual(sent.length, before, "OA discovery never sends a download until the user selects it");
+    console.log("OpenAlex recovery: only verified DOI-matched OA location offered");
   }
   // an HLS stream with several qualities: each one by its name (from the
   // playlist), the lists the player opened itself are not repeated
