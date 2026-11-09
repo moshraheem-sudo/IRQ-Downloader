@@ -131,7 +131,86 @@ async function init() {
       row.append(info, btn);
       box.appendChild(row);
     }
+    const isAr = (navigator.language || "").startsWith("ar");
+    const t = {
+      download: isAr ? "تنزيل" : "Download",
+      openPage: isAr ? "فتح صفحة المقال" : "Open article page",
+      sent: isAr ? "تم الإرسال ✔" : "Sent ✔",
+      notRunning: isAr ? "التطبيق غير مشغّل" : "App not running",
+      site: isAr ? "الموقع:" : "Site:",
+      source: isAr ? "المصدر:" : "Source:",
+      type: isAr ? "نوع الاكتشاف:" : "Detection:",
+      status: isAr ? "الحالة:" : "Status:",
+      size: isAr ? "الحجم:" : "Size:",
+      available: isAr ? "متوفر للتحميل" : "Available",
+      unknownSize: isAr ? "غير محدد مسبقاً" : "Dynamic / Unknown",
+      types: {
+        network_headers: isAr ? "استجابة الشبكة (Headers)" : "Network response (Headers)",
+        page_metadata: isAr ? "بيانات الصفحة الوصفية (Metadata)" : "Page metadata",
+        page_html: isAr ? "رابط داخل الصفحة (HTML)" : "Page document link",
+        page_embed: isAr ? "عارض مستندات مضمن (Embed)" : "Embedded viewer",
+        debugger_network: isAr ? "كشف متقدم عبر الشبكة (Debugger)" : "Advanced network inspection",
+        openalex_open_access: isAr ? "مستودع أبحاث مفتوح (OpenAlex)" : "Open access repository (OpenAlex)",
+        unpaywall_open_access: isAr ? "مستودع أبحاث مفتوح (Unpaywall)" : "Open access repository (Unpaywall)",
+      },
+    };
+
     items.forEach((m) => {
+      if (m.isDocument) {
+        const card = document.createElement("div");
+        card.className = "doc-card";
+
+        const head = document.createElement("div");
+        head.className = "doc-title";
+        const icon = document.createElement("span");
+        icon.className = "doc-icon";
+        icon.textContent = "PDF";
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = m.label || "PDF Document";
+        head.append(icon, titleSpan);
+
+        let siteHost = "";
+        try { siteHost = new URL(m.sourcePage || m.referrer || m.url).hostname; } catch (_) {}
+
+        const meta = document.createElement("div");
+        meta.className = "doc-meta";
+        meta.innerHTML = `
+          <span>${t.site}</span><b>${siteHost || "—"}</b>
+          <span>${t.type}</span><b>${t.types[m.source] || m.source || "PDF"}</b>
+          <span>${t.status}</span><b>${m.disabled ? (m.sub || "Unavailable") : t.available}</b>
+          <span>${t.size}</span><b>${m.size > 0 ? fmtSize(m.size) : t.unknownSize}</b>
+        `;
+
+        const actions = document.createElement("div");
+        actions.className = "doc-actions";
+
+        const btn = document.createElement("button");
+        btn.textContent = t.download;
+        btn.disabled = !!m.disabled;
+        btn.addEventListener("click", () => {
+          chrome.runtime.sendMessage(
+            { type: "swiftget-download", item: m, title: tab.title, referrer: tab.url, fileName: `${title}.${m.ext || "pdf"}` },
+            (res) => { btn.textContent = res && res.ok ? t.sent : t.notRunning; }
+          );
+        });
+        actions.appendChild(btn);
+
+        const pageUrl = m.sourcePage || m.referrer;
+        if (pageUrl && /^https?:/i.test(pageUrl) && pageUrl !== tab.url) {
+          const openBtn = document.createElement("button");
+          openBtn.className = "btn-sec";
+          openBtn.textContent = t.openPage;
+          openBtn.addEventListener("click", () => {
+            chrome.tabs.create({ url: pageUrl });
+          });
+          actions.appendChild(openBtn);
+        }
+
+        card.append(head, meta, actions);
+        box.appendChild(card);
+        return;
+      }
+
       const row = document.createElement("div");
       row.className = "media";
       const info = document.createElement("div");

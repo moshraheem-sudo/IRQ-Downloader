@@ -1366,6 +1366,26 @@ impl Manager {
                 _ => break r,
             }
         };
+        let result = if result.is_ok() {
+            let pdf = self.inner.lock().unwrap().entries.get(&id).and_then(|e| {
+                (e.rec.kind == DownloadKind::Http && crate::filename::extension(&e.rec.file_name) == "pdf")
+                    .then(|| {
+                        let target = e.rec.target_path();
+                        if target.exists() {
+                            target
+                        } else {
+                            e.rec.part_path()
+                        }
+                    })
+            });
+            if let Some(path) = &pdf {
+                crate::pdf::verify_file(path)
+            } else {
+                result
+            }
+        } else {
+            result
+        };
         if let Some(p) = &progress {
             p.waiting.store(false, Ordering::Relaxed);
         }
@@ -1981,6 +2001,9 @@ impl Manager {
                 "the downloaded data is gone: its temporary file \"{}\" was removed while it downloaded (an antivirus or a cleaning program?)",
                 part.display()
             );
+        }
+        if rec.kind == DownloadKind::Http && filename::extension(&file_name) == "pdf" {
+            crate::pdf::verify_file(&part)?;
         }
         let mut target = save_dir.join(&file_name);
         if target.exists() {

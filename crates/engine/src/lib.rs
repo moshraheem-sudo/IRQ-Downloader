@@ -23,6 +23,7 @@ pub mod m3u8;
 pub mod manager;
 pub mod model;
 pub mod mux;
+pub mod pdf;
 pub mod secret;
 pub mod segments;
 pub mod selfupdate;

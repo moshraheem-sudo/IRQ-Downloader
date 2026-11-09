@@ -423,6 +423,7 @@
 
   function makeBubble(video) {
     const host = document.createElement("div");
+    host.dataset.irqDownloader = "1";
     host.style.all = "initial";
     host.style.position = "fixed";
     host.style.zIndex = "2147483647";
@@ -1022,7 +1023,7 @@
 
     // 1. Scholarly and academic metadata (ScienceDirect, arXiv, PubMed, IEEE, Springer, etc.)
     const metaPdf = document.querySelector(
-      'meta[name="citation_pdf_url" i], meta[name="citation_download_pdf_url" i], meta[name="dc.identifier" i][scheme="URI"], meta[property="og:pdf" i]'
+      'meta[name="citation_pdf_url" i], meta[name="citation_download_pdf_url" i], meta[property="og:pdf" i]'
     );
     if (metaPdf && metaPdf.content) {
       const titleMeta = document.querySelector('meta[name="citation_title" i]');
@@ -1071,6 +1072,34 @@
     return docs;
   }
 
+  function pageDoi() {
+    const meta = document.querySelector('meta[name="citation_doi" i], meta[name="dc.identifier" i][scheme="doi" i], meta[name="doi" i]');
+    let value = meta && meta.content || "";
+    if (!value) {
+      for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+        try {
+          const raw = JSON.parse(script.textContent || "null");
+          const stack = Array.isArray(raw) ? raw.slice() : [raw];
+          while (stack.length && !value) {
+            const node = stack.pop();
+            if (!node || typeof node !== "object") continue;
+            for (const [key, val] of Object.entries(node)) {
+              if (typeof val === "string" && (/doi/i.test(key) || /(?:doi\.org\/|\b10\.\d{4,9}\/)/i.test(val))) { value = val; break; }
+              if (val && typeof val === "object") stack.push(val);
+            }
+          }
+        } catch (_) {}
+        if (value) break;
+      }
+    }
+    if (!value) {
+      const doiLink = document.querySelector('a[href*="doi.org/" i]');
+      if (doiLink) value = doiLink.href;
+    }
+    const match = String(value).match(/10\.\d{4,9}\/[\-._;()/:A-Z0-9]+/i);
+    return match ? match[0].replace(/[.,;]+$/, "") : "";
+  }
+
   function update(newItems) {
     if (!TOP) return; // frames look up their own videos
     let incoming = Array.isArray(newItems) ? newItems.slice() : [];
@@ -1097,6 +1126,8 @@
         if (chrome.runtime.lastError) {}
       });
     }
+    const doi = pageDoi();
+    if (doi) chrome.runtime.sendMessage({ type: "swiftget-open-access", doi, title: cleanTitle(), page: location.href }, () => {});
 
     if (!panelAllowed()) return;
     place();
@@ -1341,6 +1372,19 @@
     chrome.runtime.sendMessage({ type: "swiftget-media-request" }, (res) => {
       if (!chrome.runtime.lastError) update(res);
     });
+    let pdfScanTimer = 0;
+    const hasDocumentElement = (node) => node && node.nodeType === 1 && (
+      node.matches("a[href],iframe[src],embed[src],object[data],object[type]") ||
+      !!node.querySelector("a[href],iframe[src],embed[src],object[data],object[type]")
+    );
+    new MutationObserver((records) => {
+      if (!records.some((record) => {
+        if (record.type === "attributes") return hasDocumentElement(record.target);
+        return [...record.addedNodes, ...record.removedNodes].some(hasDocumentElement);
+      })) return;
+      clearTimeout(pdfScanTimer);
+      pdfScanTimer = setTimeout(() => update(items), 350);
+    }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "href", "data", "type"] });
   }
 
   addEventListener("scroll", place, { passive: true, capture: true });

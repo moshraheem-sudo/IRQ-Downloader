@@ -304,6 +304,7 @@ pub fn take_learned_changes() -> Option<std::collections::BTreeMap<String, u32>>
 }
 
 /// Fewer connections from now on (never more than wanted already).
+#[allow(deprecated)]
 fn lower_wanted(progress: &Progress, job_conns: u32, n: u32) {
     let n = n.max(1);
     let _ = progress.want_connections.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |cur| {
